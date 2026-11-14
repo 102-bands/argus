@@ -6,6 +6,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { LightCurve } from "../components/LightCurve";
 import { Spectrum } from "../components/Spectrum";
+import type { Candidate } from "./candidates";
 import type { Epoch, FrameMeta, PhotPoint } from "./api";
 import { formatDec, formatRa, PIXEL_ARCSEC } from "./physics";
 import { download, renderOnce, slug, toCanvas } from "./renderFrames";
@@ -28,6 +29,8 @@ export interface ReportInput {
   url: string;
   /** One-line "Checked against Gaia" result for preset targets, or null. */
   gaiaCheck?: string | null;
+  /** Automatic candidates for the field, most interesting first. */
+  candidates?: Candidate[] | null;
   onProgress?: (msg: string) => void;
 }
 
@@ -327,10 +330,47 @@ export async function buildReport(p: ReportInput): Promise<void> {
   if (spPng) doc.addImage(spPng, "PNG", MX, y, chartMM, chartH, undefined, "FAST");
   else para("No spectrum: no measurements for this field yet.", MX, y + 2, chartMM, 8.5, DIM);
 
-  // ---- 4. Data and method ------------------------------------------------------------------------
+  // ---- 4. Candidates -----------------------------------------------------------------------------
+  const cands = (p.candidates ?? []).filter((c) => c.kind !== "steady").slice(0, 22);
   doc.addPage();
   blank();
-  section("04", "Data and method", TOP + 4);
+  section("04", "Candidates found automatically", TOP + 4);
+  y = para(`${(p.candidates ?? []).length} sources above 5 sigma were measured on every visit. Labelled ones are listed; `
+    + "motion is a weighted least-squares fit across visits, variability needs two detectors to agree, and every source "
+    + "is matched to Gaia DR3 within 9″. Method: argus102.space/about, section 3.6.", MX, TOP + 12, PW - 2 * MX, 9) + 3;
+  if (!cands.length) para("No source in this field is moving, variable or unusually red at these thresholds.", MX, y + 2, PW - 2 * MX, 9, DIM);
+  else {
+    const cols = [MX, MX + 22, MX + 62, MX + 106];
+    doc.setFont("Mono", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(DIM);
+    ["Label", "RA, Dec (J2000)", "Motion", "Gaia and notes"].forEach((h, i) => doc.text(h, cols[i], y));
+    doc.setDrawColor(RULE);
+    doc.line(MX, y + 1.8, PW - MX, y + 1.8);
+    y += 6;
+    for (const c of cands) {
+      doc.setFont("Mono", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(c.kind === "moving" ? MAGENTA : PAPER);
+      doc.text(c.kind === "red" ? "very red" : c.kind, cols[0], y);
+      doc.setTextColor(MUT);
+      doc.text(`${c.ra.toFixed(5)}, ${c.dec >= 0 ? "+" : ""}${c.dec.toFixed(5)}`, cols[1], y);
+      doc.text(c.motion && c.kind === "moving"
+        ? `${(c.motion.total / 1000).toFixed(2)}±${(c.motion.err / 1000).toFixed(2)}"/yr PA${Math.round(c.motion.pa)} S=${c.motion.sigma.toFixed(1)}`
+        : "-", cols[2], y);
+      const note = [c.gaia ? `G ${c.gaia.g?.toFixed(1) ?? "?"}` : c.gaiaComplete ? "not in Gaia" : "Gaia incomplete",
+        ...c.labels.filter((l) => !["Moving", "Variable", "Very red", "Not in Gaia", "Gaia list incomplete"].includes(l)),
+        c.variableIn.length ? `var ${c.variableIn.join("")}` : ""].filter(Boolean).join(" · ");
+      const lines = doc.splitTextToSize(txt(note), PW - MX - cols[3]) as string[];
+      doc.text(lines, cols[3], y);
+      y += Math.max(1, lines.length) * 3.6 + 2;
+    }
+  }
+
+  // ---- 5. Data and method ------------------------------------------------------------------------
+  doc.addPage();
+  blank();
+  section("05", "Data and method", TOP + 4);
   y = TOP + 14;
   const block = (head: string, body: string) => {
     doc.setFont("Grotesk", "bold");

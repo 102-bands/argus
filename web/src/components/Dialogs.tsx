@@ -151,6 +151,7 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
     ["← →", "Previous or next frame"],
     ["D", "Toggle difference mode"],
     ["G", "Toggle Gaia predictions"],
+    ["C", "Toggle the automatic finds"],
     ["F", "Toggle the flags overlay"],
     ["P", "Switch between the image and the plots"],
     ["X", "Planet X: show how far a distant planet would jump"],

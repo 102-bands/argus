@@ -1,6 +1,11 @@
 // Display-side physics (PRD §7). Mirrors api/argus/physics.py; the server is the source of truth.
 
 export const PIXEL_ARCSEC = 6.15;
+/** Solid angle of one pixel (sr) and the factor from MJy/sr summed over pixels to µJy (≈ 889). */
+export const PIXEL_SR = (PIXEL_ARCSEC / 206264.806) ** 2;
+export const MJYSR_TO_UJY = PIXEL_SR * 1e12;
+/** Reference epoch of Gaia DR3 positions. */
+export const GAIA_EPOCH = 2016.0;
 export const MJD_UNIX_EPOCH = 40587;
 export const R_DRA_PERIOD_D = 246.12;
 export const R_DRA_EPOCH_JD = 2457370;

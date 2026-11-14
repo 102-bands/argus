@@ -24,6 +24,8 @@ interface Props {
   onGaia: () => void;
   flags: boolean;
   onFlags: () => void;
+  cand: boolean;
+  onCand: () => void;
   /** Planet X overlay distance in AU, 0 = off. */
   planetX: number;
   onPlanetX: (au: number) => void;
@@ -103,6 +105,7 @@ export function Controls(p: Props) {
           <div className="seg fill" role="group" aria-labelledby="ovl-l">
             <button className="btn" aria-pressed={p.gaia} onClick={p.onGaia} title="Gaia: where ESA's Gaia catalogue predicts each star should be on this date (G)">Gaia</button>
             <button className="btn" aria-pressed={p.flags} onClick={p.onFlags} title="Flags: amber = saturated pixels; hatched = no good data (F)">Flags</button>
+            <button className="btn" aria-pressed={p.cand} onClick={p.onCand} title="Finds: sources Argus measured automatically, marked moving, variable or very red (C)">Finds</button>
             <button className="btn" aria-pressed={p.planetX > 0} onClick={() => p.onPlanetX(p.planetX > 0 ? 0 : 500)}
                     title="Planet X: where a distant planet at the centre would appear on later visits (X)">Planet X</button>
           </div>

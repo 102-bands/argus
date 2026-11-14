@@ -17,6 +17,8 @@ export interface ViewState {
   epoch: number;
   gaia: boolean;
   flags: boolean;
+  /** Automatic candidate markers on the image. */
+  cand: boolean;
   view: Panel;
   /** Planet X overlay distance in AU; 0 = off. */
   px: number;
@@ -40,6 +42,7 @@ export const DEFAULTS: ViewState = {
   epoch: 0,
   gaia: false,
   flags: false,
+  cand: true,
   view: "image",
   px: 0,
 };
@@ -66,6 +69,7 @@ export function readState(search: string): ViewState {
     epoch: Math.round(num(p.get("epoch"), 0, 99, DEFAULTS.epoch)),
     gaia: p.get("gaia") === "1",
     flags: p.get("flags") === "1",
+    cand: p.get("cand") !== "0",
     view: pick(p.get("view"), PANELS, DEFAULTS.view),
     px: p.get("px") && Number(p.get("px")) > 0 ? Math.round(num(p.get("px"), PX_MIN, PX_MAX, 500)) : 0,
   };

@@ -15,6 +15,8 @@ import { Plots } from "./Plots";
 import { GaiaCheck } from "./GaiaCheck";
 import { PlanetXPanel } from "./PlanetX";
 import { checkMotion, summary } from "../lib/validate";
+import { findCandidates, type Candidate } from "../lib/candidates";
+import { Candidates } from "./Candidates";
 import { HelpDialog, ShareDialog } from "./Dialogs";
 
 const SkyContext = lazy(() => import("./SkyContext"));
@@ -144,6 +146,15 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
   // Still building or decoding: the image is blurred under a "Processing" overlay and playback waits
   // until every visit is in, so the first loop the user sees is the complete one.
   const processing = data.phase === "coverage" || data.phase === "loading" || (data.phase === "ready" && ready.length < seq.length);
+
+  // Automatic candidates, measured once every frame of every band is in (a few ms per field).
+  const allIn = data.phase === "ready" && data.frames.length > 0 && data.frames.every((f) => data.decoded.has(f.key));
+  const candidates = useMemo(
+    () => (allIn && data.grid ? findCandidates(data.frames, data.decoded, data.grid, data.gaia) : null),
+    [allIn, data.frames, data.decoded, data.grid, data.gaia],
+  );
+  const [selectedCand, setSelectedCand] = useState<number | null>(null);
+  useEffect(() => setSelectedCand(null), [data.grid]);
   const canPlay = n > 1 && view.mode !== "stack" && !processing;
 
   // Playback starts once two visits are ready (PRD §9.3).
@@ -181,6 +192,10 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
   const toggleFlags = useCallback(() => setView((v) => {
     track("flags_toggle", { on: !v.flags });
     return { ...v, flags: !v.flags };
+  }), []);
+  const toggleCand = useCallback(() => setView((v) => {
+    track("candidates_toggle", { on: !v.cand });
+    return { ...v, cand: !v.cand };
   }), []);
   const setPlanetX = useCallback((au: number) => {
     track("planetx_toggle", { au });
@@ -220,6 +235,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       else if (k === "d" || k === "D") setMode(view.mode === "diff" ? "blink" : "diff");
       else if (k === "g" || k === "G") toggleGaia();
       else if (k === "f" || k === "F") toggleFlags();
+      else if (k === "c" || k === "C") toggleCand();
       else if (k === "x" || k === "X") setPlanetX(view.px > 0 ? 0 : 500);
       else if (k >= "0" && k <= "6") { const b = BANDS[Number(k)]; if (bandsAvailable.has(b)) setBand(b); }
       else if (k === "+" || k === "=") update({ speed: Math.max(100, view.speed - 100) });
@@ -229,7 +245,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [togglePlay, step, setMode, toggleGaia, toggleFlags, setBand, setPlanetX, update, view.mode, view.speed, view.view, view.px, bandsAvailable]);
+  }, [togglePlay, step, setMode, toggleGaia, toggleFlags, toggleCand, setBand, setPlanetX, update, view.mode, view.speed, view.view, view.px, bandsAvailable]);
 
   const bitmap = cur ? bitmaps.get(view.mode === "stack" ? "stack" : cur.key) ?? null : null;
   const decoded = cur ? data.decoded.get(cur.key) ?? null : null;
@@ -308,6 +324,9 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       onPick={setHover}
       busy={processing && n > 0}
       target={fieldTarget && view.mode !== "stack" ? fieldTarget : null}
+      candidates={view.cand ? candidates?.candidates ?? null : null}
+      selectedCandidate={selectedCand}
+      onSelectCandidate={(id) => { setSelectedCand(id); if (id !== null) track("candidate_select", { id }); }}
       planetX={view.px > 0 && ready[0] ? { au: view.px, refMjd: ready[0].t_mid, refLabel: ready[0].epoch_label } : null}
       label={label}
       badges={badges}
@@ -346,6 +365,8 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       onGaia={toggleGaia}
       flags={view.flags}
       onFlags={toggleFlags}
+      cand={view.cand}
+      onCand={toggleCand}
       planetX={view.px}
       onPlanetX={setPlanetX}
       onHelp={() => setHelpOpen(true)}
@@ -442,6 +463,10 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
         )}
         <Inspector hover={hover} grid={data.grid} decoded={decoded} frame={cur} />
         {motionCheck && <GaiaCheck check={motionCheck} band={view.band} />}
+        {!embed && field && (
+          <Candidates result={candidates} selected={selectedCand} onSelect={setSelectedCand}
+                      onCentre={(c: Candidate) => navigate(`/app?ra=${c.ra.toFixed(5)}&dec=${c.dec.toFixed(5)}&size=3`)} />
+        )}
         {view.px > 0 && field && (
           <PlanetXPanel au={view.px} ra={data.grid?.crval[0] ?? field.ra} dec={data.grid?.crval[1] ?? field.dec}
                         refVisit={ready[0] ? { mjd: ready[0].t_mid, label: ready[0].epoch_label } : null}
@@ -486,6 +511,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
           band: view.band, stretch: view.stretch, soft, frames: ready, epochs: data.epochs, photometry: data.photometry,
           collections: data.collections, url: window.location.href,
           gaiaCheck: motionCheck ? summary(motionCheck, view.band) : null,
+          candidates: candidates?.candidates ?? null,
         } : null,
         gif: worker && !processing && ready.length > 1 ? {
           worker, frames: ready, mode: view.mode, refKey: refFrame?.key ?? null, stretch: view.stretch, soft,

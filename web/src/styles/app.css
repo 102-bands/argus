@@ -115,6 +115,33 @@ button, input, select { font: inherit; color: inherit; }
 .check-more[open] summary { margin-bottom: 4px; }
 .check-table tr.muted td { color: var(--fg-3); }
 .check-table tr.muted td:last-child { color: var(--fg-3); }
+
+/* Automatic candidates */
+[data-tour="overlays"] .seg .btn { padding-left: 4px; padding-right: 4px; }
+.cand-sum { margin: 0 0 6px; font-size: 12px; color: var(--fg-2); }
+.cand-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto; scrollbar-width: thin; }
+.cand-row {
+  display: grid; grid-template-columns: 12px auto 1fr auto; gap: 8px; align-items: center; width: 100%;
+  background: none; border: 0; border-top: 1px solid var(--line); padding: 5px 0; color: var(--fg); font: inherit;
+  font-size: 12px; text-align: left; cursor: pointer;
+}
+.cand-row:hover .cand-kind, .open > .cand-row .cand-kind { color: var(--white); }
+.cand-row:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+.cand-mark { width: 9px; height: 9px; border: 1.5px solid rgba(255, 255, 255, 0.6); border-radius: 50%; }
+.k-moving .cand-mark { border-color: var(--magenta); border-radius: 0; }
+.k-variable .cand-mark { border-color: var(--amber); border-radius: 0; transform: rotate(45deg) scale(0.85); }
+.k-red .cand-mark { border-color: #ff7a45; }
+.unknown .cand-mark { border-style: dashed; }
+.cand-kind { color: var(--fg-2); }
+.cand-tags { color: var(--fg-3); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cand-sig { color: var(--fg-3); font-size: 11px; }
+.cand-detail { padding: 4px 0 10px 20px; }
+.cand-detail .kv { font-size: 11px; margin: 0 0 6px; }
+.cand-why { font-size: 11.5px; margin: 4px 0 8px; }
+.spark { display: block; width: 120px; height: 28px; }
+.spark-mean { stroke: var(--line-2); stroke-dasharray: 2 2; }
+.spark-line { fill: none; stroke: var(--cyan); stroke-width: 1.2; }
+.spark-dot { fill: var(--cyan); }
 .px-read { font-size: 12px; color: var(--magenta); margin: 0 0 6px; }
 .px-limit { font-size: 12px; margin: 6px 0 0; color: var(--fg-3); }
 .px-ctl { margin-top: 6px; }

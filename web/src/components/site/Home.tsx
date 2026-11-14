@@ -71,8 +71,8 @@ export function Home({ targets, navigate }: Props) {
             </li>
             <li>
               <h3>Blink and check</h3>
-              <p>Flip between visits, subtract them to see what changed, read the light curve and spectrum, and
-                compare every motion with where Gaia says each star should be.</p>
+              <p>Argus measures every source on every visit and flags what moves, what varies and what is unusually red,
+                then checks each one against Gaia. Flip between visits and read the light curve and spectrum yourself.</p>
             </li>
           </ol>
         </section>

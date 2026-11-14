@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import type { FrameMeta, GaiaSource } from "../lib/api";
 import { LAYER_ALL_MASKED, LAYER_SATURATED, type DecodedFrame } from "../lib/frame";
-import { PIXEL_ARCSEC, type GridWcs, mjdToYear, planetXShift, propagate, worldToPixel } from "../lib/physics";
+import type { Candidate } from "../lib/candidates";
+import { GAIA_EPOCH, PIXEL_ARCSEC, type GridWcs, mjdToYear, planetXShift, propagate, worldToPixel } from "../lib/physics";
 import { targetPixel, type MotionTarget } from "../lib/validate";
 import type { Mode } from "../lib/urlState";
 
@@ -29,18 +30,23 @@ interface Props {
   target?: MotionTarget | null;
   /** Planet X overlay: distance (AU) and the reference visit's time; the body sits at the centre then. */
   planetX?: { au: number; refMjd: number; refLabel: string } | null;
+  /** Automatic candidates (only the labelled ones are drawn, plus the selected one). */
+  candidates?: Candidate[] | null;
+  selectedCandidate?: number | null;
+  onSelectCandidate?: (id: number | null) => void;
   label: React.ReactNode;
   badges: React.ReactNode;
   children?: React.ReactNode;
 }
 
-const GAIA_EPOCH = 2016.0;
 const MIN_ARROW_PX = 0.3;
 
 export function BlinkViewer(p: Props) {
   const base = useRef<HTMLCanvasElement>(null);
   const over = useRef<HTMLCanvasElement>(null);
   const n = p.grid?.n ?? 0;
+  // Labelled candidates are always drawn; a steady source only while it is selected.
+  const shown = (c: Candidate) => c.kind !== "steady" || c.id === p.selectedCandidate;
 
   // Image layer: draw the stretched frame at native resolution; CSS scales it with pixelated rendering.
   useEffect(() => {
@@ -222,12 +228,42 @@ export function BlinkViewer(p: Props) {
     g.font = `${10 * dpr}px "JetBrains Mono", monospace`;
     g.fillText(arcsec === 60 ? "1′" : "30″", bx, by - 4 * dpr);
 
+    if (p.candidates) {
+      const COL: Record<Candidate["kind"], string> = { moving: "#E04CF0", variable: "#F2B33D", red: "#FF7A45", steady: "rgba(255,255,255,0.7)" };
+      for (const c of p.candidates) {
+        if (!shown(c)) continue;
+        const sel = c.id === p.selectedCandidate;
+        const here = c.visits.find((v) => v.epoch === p.frame?.epoch) ?? c;
+        const [cx, cy] = toCanvas(here.x, here.y);
+        const r = Math.max(s * 1.9, 9 * dpr);
+        g.strokeStyle = COL[c.kind];
+        g.lineWidth = (sel ? 2.5 : 1.5) * dpr;
+        g.setLineDash(c.labels.includes("Not in Gaia") ? [4 * dpr, 3 * dpr] : []);
+        if (c.kind === "moving" && c.visits.length > 1) {
+          // The measured track, visit to visit.
+          g.beginPath();
+          c.visits.forEach((v, i) => { const [tx, ty] = toCanvas(v.x, v.y); if (i) g.lineTo(tx, ty); else g.moveTo(tx, ty); });
+          g.stroke();
+        }
+        g.beginPath();
+        if (c.kind === "variable") {
+          g.moveTo(cx, cy - r); g.lineTo(cx + r, cy); g.lineTo(cx, cy + r); g.lineTo(cx - r, cy); g.closePath();
+        } else if (c.kind === "moving") {
+          g.rect(cx - r * 0.85, cy - r * 0.85, r * 1.7, r * 1.7);
+        } else {
+          g.arc(cx, cy, r, 0, Math.PI * 2);
+        }
+        g.stroke();
+        g.setLineDash([]);
+      }
+    }
+
     if (p.hover) {
       const [hx, hy] = toCanvas(p.hover.x, p.hover.y);
       g.strokeStyle = "#FFFFFF";
       g.strokeRect(hx - s / 2, hy - s / 2, s, s);
     }
-  }, [p.grid, p.decoded, p.frame, p.gaia, p.showGaia, p.showFlags, p.hover, p.mode, p.epochTimes, p.planetX, n]);
+  }, [p.grid, p.decoded, p.frame, p.gaia, p.showGaia, p.showFlags, p.hover, p.mode, p.epochTimes, p.planetX, p.candidates, p.selectedCandidate, n]);
 
   const ring = p.target && p.grid && p.frame ? targetPixel(p.grid, p.target, p.frame.t_mid) : null;
 
@@ -257,7 +293,11 @@ export function BlinkViewer(p: Props) {
           onPointerLeave={() => p.onHover(null)}
           onClick={(e) => {
             const h = pick(e);
-            if (h) p.onPick(h);
+            if (!h) return;
+            const hit = p.candidates && p.onSelectCandidate
+              ? p.candidates.filter(shown).find((c) => Math.hypot(c.x - h.x, c.y - h.y) <= 2.5) : null;
+            if (hit && p.onSelectCandidate) p.onSelectCandidate(hit.id === p.selectedCandidate ? null : hit.id);
+            else p.onPick(h);
           }}
         />
         {p.mode === "diff" && (

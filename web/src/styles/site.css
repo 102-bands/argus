@@ -203,6 +203,12 @@
 .paper ul { padding-left: 22px; }
 .paper li { margin-bottom: 6px; }
 .eq { font-style: italic; white-space: nowrap; }
+.paper var { font-style: italic; }
+.paper b, .paper strong { font-weight: 600; }
+.peq { display: flex; align-items: baseline; gap: 16px; margin: 4px 0 16px; padding: 2px 0; overflow-x: auto; }
+.peq-body { flex: 1; text-align: center; font-size: 1.02em; line-height: 1.9; }
+.peq-n { flex: none; color: #6b6a64; font-size: 0.9em; }
+.peq sub, .peq sup, .paper p sub, .paper p sup { font-size: 0.72em; line-height: 0; }
 .pfig { margin: 26px 0; }
 .pfig img { width: 100%; display: block; border: 1px solid #cfccc2; }
 .pfig figcaption { font-size: 14.5px; line-height: 1.5; color: #3c3b37; margin-top: 8px; }

@@ -23,7 +23,7 @@ export function targetPixel(grid: GridWcs, t: MotionTarget, mjd: number): [numbe
   return worldToPixel(grid, ra, dec);
 }
 
-function quantiles(px: Float32Array, qs: number[]): number[] {
+export function quantiles(px: Float32Array, qs: number[]): number[] {
   const v = Array.from(px).filter(Number.isFinite).sort((a, b) => a - b);
   if (!v.length) return qs.map(() => 0);
   return qs.map((q) => v[Math.min(v.length - 1, Math.max(0, Math.round(q * (v.length - 1))))]);
