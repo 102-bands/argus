@@ -87,6 +87,38 @@ button, input, select { font: inherit; color: inherit; }
 
 .state-msg { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 24px; color: var(--fg-2); }
 .state-msg h3 { margin: 0; color: var(--fg); font-weight: 500; }
+/* Pulsing ring on the preset target; it follows the target from visit to visit. */
+.mover-ring {
+  position: absolute; width: 9%; aspect-ratio: 1; min-width: 22px; transform: translate(-50%, -50%);
+  border: 2px solid var(--cyan); border-radius: 50%; pointer-events: none; animation: ring 1.6s ease-out infinite;
+}
+@keyframes ring { 0% { opacity: 0.95; transform: translate(-50%, -50%) scale(0.75); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); } }
+.hint-chip {
+  position: absolute; left: 8px; right: 8px; top: 8px; padding: 6px 10px; font-size: 12px; line-height: 1.35;
+  background: rgba(11, 11, 15, 0.82); border: 1px solid var(--cyan); color: var(--fg); pointer-events: none;
+}
+
+/* Checked against Gaia */
+.check-sum { margin: 0 0 6px; font-size: 13px; color: var(--fg-2); }
+.check-sum.pass { color: var(--fg); }
+.check-sum.fail { color: var(--amber); }
+.check-sum .mark { display: inline-block; width: 1.2em; color: var(--green); font-weight: 600; }
+.check-sum.fail .mark { color: var(--amber); }
+.check-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; }
+.check-table th { text-align: left; font-weight: 400; color: var(--fg-3); padding: 2px 0; }
+.check-table td { padding: 1px 0; color: var(--fg-2); border-top: 1px solid var(--line); }
+.check-table td:last-child, .check-table th:last-child { text-align: right; color: var(--green); }
+.check-note { font-size: 11px; margin: 6px 0 0; }
+.check-more summary { cursor: pointer; font-size: 12px; color: var(--fg-3); }
+.check-more summary:hover { color: var(--fg); }
+.check-more[open] summary { margin-bottom: 4px; }
+.check-table tr.muted td { color: var(--fg-3); }
+.check-table tr.muted td:last-child { color: var(--fg-3); }
+.px-read { font-size: 12px; color: var(--magenta); margin: 0 0 6px; }
+.px-limit { font-size: 12px; margin: 6px 0 0; color: var(--fg-3); }
+.px-ctl { margin-top: 6px; }
+.px-ctl input[type="range"] { accent-color: var(--magenta); }
+
 /* Processing: the frames so far show through, blurred, until every visit is in. */
 .viewer canvas { transition: filter 0.4s; }
 .viewer.busy canvas { filter: blur(4px) brightness(0.55); }
@@ -239,15 +271,30 @@ button, input, select { font: inherit; color: inherit; }
   .side .panel { padding: 10px 16px; }
   .sky-map { aspect-ratio: auto; height: 150px; }
 }
-/* Laptop-height screens (up to 880px tall): drop the presets' second line and shrink the map. */
-@media (min-width: 1024px) and (max-height: 880px) {
+/* Laptop-height screens (up to 960px tall): drop the presets' second line, shrink the map, clamp notes. */
+@media (min-width: 1024px) and (max-height: 960px) {
+  .target-notes { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .preset small { display: none; }
   .preset { padding: 5px 10px; }
   .sky-map { height: 120px; }
   .side .note { font-size: 12px; }
 }
 
+/* Short laptops (≤ 880 px tall): presets in two columns. */
+@media (min-width: 1024px) and (max-height: 880px) {
+  .side .presets { grid-template-columns: 1fr 1fr; }
+  .side .preset strong { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+/* The smallest laptops (≤ 800 px tall, e.g. 1366×768): two lines of notes, a smaller map, tighter panels. */
+@media (min-width: 1024px) and (max-height: 800px) {
+  .target-notes { -webkit-line-clamp: 2; }
+  .sky-map { height: 96px; }
+  .side .panel { padding: 8px 14px; }
+  .side .panel h2 { margin-bottom: 5px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
   .state-msg .dots i { opacity: 1; }
+  .mover-ring { opacity: 0.9; }
 }

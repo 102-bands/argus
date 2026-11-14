@@ -149,6 +149,7 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
     ["G", "Toggle Gaia predictions"],
     ["F", "Toggle the flags overlay"],
     ["P", "Switch between the image and the plots"],
+    ["X", "Planet X: show how far a distant planet would jump"],
     ["1 – 6", "Show one detector (D1 to D6)"],
     ["0", "All detectors"],
     ["+ / −", "Faster or slower"],

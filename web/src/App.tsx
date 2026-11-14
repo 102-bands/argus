@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Target } from "./lib/api";
-import { loadPresetIndex } from "./lib/api";
+import { loadPresetIndex, presetPath } from "./lib/api";
 import { track } from "./lib/analytics";
 import { SearchBox } from "./components/SearchBox";
 import { Explorer } from "./components/Explorer";
@@ -63,7 +63,7 @@ export function App() {
             onPreset={(id) => {
               const t = targets.find((x) => x.id === id);
               track("preset_click", { target: id });
-              navigate(`/t/${id}${t && t.band !== "all" ? `?band=${t.band}` : ""}`);
+              navigate(t ? presetPath(t) : `/t/${id}`);
             }}
           />
         )}

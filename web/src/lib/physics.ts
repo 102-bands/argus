@@ -127,3 +127,33 @@ export function pixelToWorld(w: GridWcs, x: number, y: number): [number, number]
   const ra = a0 + Math.atan2(xi * Math.sin(c), rho * Math.cos(d0) * Math.cos(c) - eta * Math.sin(d0) * Math.sin(c));
   return [((ra / D2R) % 360 + 360) % 360, dec / D2R];
 }
+
+/** Earth's heliocentric position (AU, equatorial J2000-ish) from the low-precision solar formulae
+ *  (Astronomical Almanac / Meeus; good to ~0.01°, far finer than the Planet X effect it feeds). */
+export function earthHelio(mjd: number): [number, number, number] {
+  const n = mjd + 2400000.5 - 2451545.0;
+  const L = (280.46 + 0.9856474 * n) * D2R;
+  const g = (357.528 + 0.9856003 * n) * D2R;
+  const lam = L + (1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) * D2R;
+  const R = 1.00014 - 0.01671 * Math.cos(g) - 0.00014 * Math.cos(2 * g);
+  const eps = (23.439 - 0.0000004 * n) * D2R;
+  // Sun seen from Earth, negated.
+  return [-R * Math.cos(lam), -R * Math.cos(eps) * Math.sin(lam), -R * Math.sin(eps) * Math.sin(lam)];
+}
+
+/** Where a distant body that sat at (ra, dec) on mjd1 appears on mjd2, if it is `dAU` away and its own
+ *  motion is ignored: the jump is parallax from Earth's orbit. Returns the offset east and north in arcsec. */
+export function planetXShift(ra: number, dec: number, mjd1: number, mjd2: number, dAU: number): [number, number] {
+  const a = ra * D2R;
+  const d = dec * D2R;
+  const u = [Math.cos(d) * Math.cos(a), Math.cos(d) * Math.sin(a), Math.sin(d)];
+  const e1 = earthHelio(mjd1);
+  const e2 = earthHelio(mjd2);
+  // Body at E1 + d·u (seen at the field centre on mjd1); seen from E2 it lies along d·u + E1 − E2.
+  const v = u.map((c, i) => dAU * c + e1[i] - e2[i]);
+  const r = Math.hypot(v[0], v[1], v[2]);
+  const dec2 = Math.asin(v[2] / r);
+  let dra = Math.atan2(v[1], v[0]) - a;
+  dra = Math.atan2(Math.sin(dra), Math.cos(dra));
+  return [(dra * Math.cos(d)) / D2R * 3600, (dec2 - d) / D2R * 3600];
+}

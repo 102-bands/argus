@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FrameMeta, Target } from "../lib/api";
+import { presetPath, type FrameMeta, type Target } from "../lib/api";
 import { parseDec, parseRa } from "../lib/physics";
 import { BANDS, readState, writeState, type Band, type Mode, type ViewState } from "../lib/urlState";
 import { useSkyData, type Field } from "../lib/useSkyData";
@@ -10,6 +10,9 @@ import { Controls } from "./Controls";
 import { Timeline } from "./Timeline";
 import { Inspector } from "./Inspector";
 import { Plots } from "./Plots";
+import { GaiaCheck } from "./GaiaCheck";
+import { PlanetXPanel } from "./PlanetX";
+import { checkMotion, summary } from "../lib/validate";
 import { HelpDialog, ShareDialog } from "./Dialogs";
 
 const SkyContext = lazy(() => import("./SkyContext"));
@@ -23,6 +26,17 @@ interface Props {
   onShareClose: () => void;
 }
 
+// First-visit hint per preset: what the pulsing ring is showing.
+const HINTS: Record<string, string> = {
+  barnard: "Watch the ring: Barnard's Star creeps north between visits, just as Gaia predicts.",
+  "eps-indi-b": "Watch the ring: ε Indi B drifts south-east, about a pixel over the year.",
+  "wise-0855": "Watch the ring in D6: the coldest known brown dwarf, invisible at short wavelengths.",
+  "rw-aur": "Watch the ring: RW Aur stays put, but its brightness changes from visit to visit.",
+  "r-dra": "Watch the ring: R Dra stays put and pulses in brightness over its 246-day cycle.",
+};
+const HINT_KEY = "argus.hintSeen";
+const hintSeen = () => { try { return localStorage.getItem(HINT_KEY) === "1"; } catch { return false; } };
+
 const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
 export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShareClose }: Props) {
@@ -35,6 +49,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
   const [retry, setRetry] = useState(0);
   const [bitmaps, setBitmaps] = useState<Map<string, ImageBitmap>>(new Map());
   const [announce, setAnnounce] = useState("");
+  const [hintOpen, setHintOpen] = useState(() => !hintSeen());
   // Created in an effect (not useMemo) so StrictMode's mount/unmount/mount never leaves a terminated worker.
   const [worker, setWorker] = useState<Worker | null>(null);
   useEffect(() => {
@@ -159,10 +174,31 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
     track("flags_toggle", { on: !v.flags });
     return { ...v, flags: !v.flags };
   }), []);
+  const setPlanetX = useCallback((au: number) => {
+    track("planetx_toggle", { au });
+    update({ px: au });
+  }, [update]);
   const togglePlay = useCallback(() => setPlaying((p) => {
     if (!p) track("blink_play", { band: view.band, mode: view.mode, n_frames: n });
     return !p;
   }), [view.band, view.mode, n]);
+
+  // The first-visit hint goes away on the first click or key press, or after 12 s, and stays away.
+  useEffect(() => {
+    if (!hintOpen || processing || !fieldTarget) return;
+    const close = () => {
+      setHintOpen(false);
+      try { localStorage.setItem(HINT_KEY, "1"); } catch { /* private mode: show again next time */ }
+    };
+    const t = window.setTimeout(close, 12000);
+    window.addEventListener("pointerdown", close, { once: true });
+    window.addEventListener("keydown", close, { once: true });
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", close);
+    };
+  }, [hintOpen, processing, fieldTarget]);
 
   // Keyboard (PRD §9.3).
   useEffect(() => {
@@ -176,6 +212,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       else if (k === "d" || k === "D") setMode(view.mode === "diff" ? "blink" : "diff");
       else if (k === "g" || k === "G") toggleGaia();
       else if (k === "f" || k === "F") toggleFlags();
+      else if (k === "x" || k === "X") setPlanetX(view.px > 0 ? 0 : 500);
       else if (k >= "0" && k <= "6") { const b = BANDS[Number(k)]; if (bandsAvailable.has(b)) setBand(b); }
       else if (k === "+" || k === "=") update({ speed: Math.max(100, view.speed - 100) });
       else if (k === "-" || k === "_") update({ speed: Math.min(2000, view.speed + 100) });
@@ -184,7 +221,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [togglePlay, step, setMode, toggleGaia, toggleFlags, setBand, update, view.mode, view.speed, view.view, bandsAvailable]);
+  }, [togglePlay, step, setMode, toggleGaia, toggleFlags, setBand, setPlanetX, update, view.mode, view.speed, view.view, view.px, bandsAvailable]);
 
   const bitmap = cur ? bitmaps.get(view.mode === "stack" ? "stack" : cur.key) ?? null : null;
   const decoded = cur ? data.decoded.get(cur.key) ?? null : null;
@@ -262,10 +299,15 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       onHover={setHover}
       onPick={setHover}
       busy={processing && n > 0}
+      target={fieldTarget && view.mode !== "stack" ? fieldTarget : null}
+      planetX={view.px > 0 && ready[0] ? { au: view.px, refMjd: ready[0].t_mid, refLabel: ready[0].epoch_label } : null}
       label={label}
       badges={badges}
     >
       {status}
+      {hintOpen && !processing && fieldTarget && HINTS[fieldTarget.id] && view.mode !== "stack" && (
+        <div className="hint-chip" role="note">{HINTS[fieldTarget.id]}</div>
+      )}
     </BlinkViewer>
   );
 
@@ -296,6 +338,8 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       onGaia={toggleGaia}
       flags={view.flags}
       onFlags={toggleFlags}
+      planetX={view.px}
+      onPlanetX={setPlanetX}
       onHelp={() => setHelpOpen(true)}
     />
   );
@@ -315,6 +359,13 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
   }
 
   const showPlots = view.view === "plots";
+
+  // Preset target vs Gaia on every visit of this band (only once every frame is in).
+  const motionCheck = useMemo(
+    () => (fieldTarget && data.grid && !processing && ready.length >= 2
+      ? checkMotion(ready, data.decoded, data.grid, fieldTarget, view.band === "all") : null),
+    [fieldTarget, data.grid, data.decoded, processing, ready, view.band],
+  );
 
   return (
     <main className="explorer" id="main">
@@ -357,11 +408,18 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
         {fieldTarget && (
           <section className="panel">
             <h2 className="label">{fieldTarget.name}</h2>
-            <p className="note" style={{ margin: 0 }}>{fieldTarget.notes}</p>
+            <p className="note target-notes" style={{ margin: 0 }} title={fieldTarget.notes}>{fieldTarget.notes}</p>
           </section>
         )}
         <Inspector hover={hover} grid={data.grid} decoded={decoded} frame={cur} />
-        {field && (
+        {motionCheck && <GaiaCheck check={motionCheck} band={view.band} />}
+        {view.px > 0 && field && (
+          <PlanetXPanel au={view.px} ra={data.grid?.crval[0] ?? field.ra} dec={data.grid?.crval[1] ?? field.dec}
+                        refVisit={ready[0] ? { mjd: ready[0].t_mid, label: ready[0].epoch_label } : null}
+                        last={cur && cur !== ready[0] ? { mjd: cur.t_mid, label: cur.epoch_label }
+                          : ready.length > 1 ? { mjd: ready[ready.length - 1].t_mid, label: ready[ready.length - 1].epoch_label } : null} />
+        )}
+        {field && view.px === 0 && (
           <section className="panel" aria-labelledby="ctx-h">
             <h2 id="ctx-h" className="label">Sky context</h2>
             <Suspense fallback={<p className="note">Loading the sky map…</p>}>
@@ -373,11 +431,11 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
           <h2 id="pre-h" className="label">Presets</h2>
           <div className="presets">
             {targets.map((t) => (
-              <a key={t.id} href={`/t/${t.id}`} className="preset" aria-current={field?.presetId === t.id} title={t.notes}
+              <a key={t.id} href={presetPath(t)} className="preset" aria-current={field?.presetId === t.id} title={t.notes}
                  onClick={(e) => {
                    e.preventDefault();
                    track("preset_click", { target: t.id });
-                   navigate(`/t/${t.id}${t.band !== "all" ? `?band=${t.band}` : ""}`);
+                   navigate(presetPath(t));
                  }}>
                 <strong>{t.name}</strong>
                 <small>{t.notes.split(/[.:]/)[0]}</small>
@@ -393,6 +451,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
           worker, name: fieldTarget?.name ?? "", notes: fieldTarget?.notes ?? "", ra: field.ra, dec: field.dec, size: field.size,
           band: view.band, stretch: view.stretch, soft, frames: ready, epochs: data.epochs, photometry: data.photometry,
           collections: data.collections, url: window.location.href,
+          gaiaCheck: motionCheck ? summary(motionCheck, view.band) : null,
         } : null,
         gif: worker && !processing && ready.length > 1 ? {
           worker, frames: ready, mode: view.mode, refKey: refFrame?.key ?? null, stretch: view.stretch, soft,

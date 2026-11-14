@@ -26,6 +26,8 @@ export interface ReportInput {
   photometry: PhotPoint[];
   collections: string[];
   url: string;
+  /** One-line "Checked against Gaia" result for preset targets, or null. */
+  gaiaCheck?: string | null;
   onProgress?: (msg: string) => void;
 }
 
@@ -187,6 +189,7 @@ export async function buildReport(p: ReportInput): Promise<void> {
     ["Exposures", String(exposures)],
     ["Band", `${bandText}\n${lam(first)}`],
     ["Data", p.collections.map((c) => c.replace("spherex_", "SPHEREx ").toUpperCase().replace("SPHEREX", "SPHEREx")).join(" + ") + "\nNASA/IPAC IRSA"],
+    ...(p.gaiaCheck ? [["Gaia check", p.gaiaCheck] as [string, string]] : []),
     ["Saturation", anySat ? "Yes: the centre is too bright in some exposures; its brightness is a lower limit." : "None at the centre"],
   ];
   let fy = imgY + 2;

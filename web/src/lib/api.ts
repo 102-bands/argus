@@ -15,6 +15,19 @@ export interface Target {
   pmdec: number;
 }
 
+/** Fields that open at their 3′ precompute (every exposure) instead of the 8′ default: WISE 0855 is faint, and
+ *  the 8′ live build kept only 3–7 D6 exposures per visit, too few to measure it (fails the Gaia check). */
+const PRESET_SIZE: Record<string, number> = { "wise-0855": 3 };
+
+/** Link for a preset: its own band (e.g. D6) and size, when they differ from the defaults. */
+export function presetPath(t: Pick<Target, "id" | "band">): string {
+  const q = new URLSearchParams();
+  if (t.band !== "all") q.set("band", t.band);
+  if (PRESET_SIZE[t.id]) q.set("size", String(PRESET_SIZE[t.id]));
+  const qs = q.toString();
+  return `/t/${t.id}${qs ? `?${qs}` : ""}`;
+}
+
 export interface Epoch {
   id: number;
   label: string;

@@ -1,4 +1,4 @@
-import { BANDS, MODES, STRETCHES, type Band, type Mode, type Stretch } from "../lib/urlState";
+import { BANDS, MODES, PX_MAX, PX_MIN, STRETCHES, type Band, type Mode, type Stretch } from "../lib/urlState";
 
 interface Props {
   /** "rail": stacked sections in the dashboard's left column. "bar": one wrapping row (embed, phones). */
@@ -24,6 +24,9 @@ interface Props {
   onGaia: () => void;
   flags: boolean;
   onFlags: () => void;
+  /** Planet X overlay distance in AU, 0 = off. */
+  planetX: number;
+  onPlanetX: (au: number) => void;
   onHelp: () => void;
 }
 
@@ -100,9 +103,19 @@ export function Controls(p: Props) {
           <div className="seg fill" role="group" aria-labelledby="ovl-l">
             <button className="btn" aria-pressed={p.gaia} onClick={p.onGaia} title="Gaia: where ESA's Gaia catalogue predicts each star should be on this date (G)">Gaia</button>
             <button className="btn" aria-pressed={p.flags} onClick={p.onFlags} title="Flags: amber = saturated pixels; hatched = no good data (F)">Flags</button>
+            <button className="btn" aria-pressed={p.planetX > 0} onClick={() => p.onPlanetX(p.planetX > 0 ? 0 : 500)}
+                    title="Planet X: where a distant planet at the centre would appear on later visits (X)">Planet X</button>
           </div>
           <button className="btn icon" onClick={p.onHelp} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">?</button>
         </div>
+        {p.planetX > 0 && (
+          <label className="ctl px-ctl" title="Distance of the imagined planet from the Sun (log scale)">
+            <input type="range" min={Math.log10(PX_MIN)} max={Math.log10(PX_MAX)} step={0.01} value={Math.log10(p.planetX)}
+                   aria-label="Planet X distance in astronomical units"
+                   onChange={(e) => p.onPlanetX(Math.round(10 ** Number(e.target.value) / 10) * 10)} />
+            <span className="mono">{p.planetX} AU</span>
+          </label>
+        )}
       </div>
     </div>
   );

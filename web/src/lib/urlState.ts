@@ -18,12 +18,16 @@ export interface ViewState {
   gaia: boolean;
   flags: boolean;
   view: Panel;
+  /** Planet X overlay distance in AU; 0 = off. */
+  px: number;
 }
 
 export const BANDS: Band[] = ["all", "D1", "D2", "D3", "D4", "D5", "D6"];
 export const STRETCHES: Stretch[] = ["asinh", "linear", "log", "zscale"];
 export const MODES: Mode[] = ["blink", "diff", "stack"];
 export const PANELS: Panel[] = ["image", "plots"];
+export const PX_MIN = 200;
+export const PX_MAX = 3000;
 
 export const DEFAULTS: ViewState = {
   ra: null,
@@ -37,6 +41,7 @@ export const DEFAULTS: ViewState = {
   gaia: false,
   flags: false,
   view: "image",
+  px: 0,
 };
 
 function pick<T extends string>(v: string | null, allowed: T[], fallback: T): T {
@@ -62,6 +67,7 @@ export function readState(search: string): ViewState {
     gaia: p.get("gaia") === "1",
     flags: p.get("flags") === "1",
     view: pick(p.get("view"), PANELS, DEFAULTS.view),
+    px: p.get("px") && Number(p.get("px")) > 0 ? Math.round(num(p.get("px"), PX_MIN, PX_MAX, 500)) : 0,
   };
 }
 

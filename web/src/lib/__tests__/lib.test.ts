@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseCoords, propagate, worldToPixel, pixelToWorld, miraPhase, R_DRA_EPOCH_JD } from "../physics";
+import { parseCoords, propagate, worldToPixel, pixelToWorld, miraPhase, R_DRA_EPOCH_JD, earthHelio, planetXShift } from "../physics";
+import { centroid } from "../validate";
 import { readState, writeState, DEFAULTS } from "../urlState";
 import { halfToFloat } from "../frame";
 
@@ -54,5 +55,42 @@ describe("float16", () => {
     expect(halfToFloat(0xc000)).toBe(-2);
     expect(Number.isNaN(halfToFloat(0x7e00))).toBe(true);
     expect(halfToFloat(0x0001)).toBeCloseTo(5.96e-8, 9);
+  });
+});
+
+describe("planet X parallax", () => {
+  it("puts Earth about 0.983 AU from the Sun in early January, at ecliptic longitude ~100°", () => {
+    const [x, y, z] = earthHelio(51544.5); // 2000-01-01.5
+    expect(Math.hypot(x, y, z)).toBeCloseTo(0.983, 2);
+    // Sun at λ≈280°, so Earth at λ≈100° (equatorial x<0, y>0).
+    expect(x).toBeLessThan(0);
+    expect(y).toBeGreaterThan(0);
+  });
+
+  it("jumps ~2 AU / d at the north ecliptic pole over half a year", () => {
+    const [de, dn] = planetXShift(270, 66.5607, 61000, 61182.6, 500);
+    const expected = (2 / 500) * 206265; // ≈ 825″
+    expect(Math.hypot(de, dn)).toBeGreaterThan(expected * 0.97);
+    expect(Math.hypot(de, dn)).toBeLessThan(expected * 1.03);
+  });
+
+  it("scales as 1/distance", () => {
+    const a = Math.hypot(...planetXShift(100, 20, 61000, 61180, 300));
+    const b = Math.hypot(...planetXShift(100, 20, 61000, 61180, 900));
+    expect(a / b).toBeCloseTo(3, 1);
+  });
+});
+
+describe("centroid", () => {
+  it("recovers a sub-pixel position from a Gaussian star", () => {
+    const n = 31;
+    const px = new Float32Array(n * n);
+    const cx = 15.3;
+    const cy = 14.6;
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) px[y * n + x] = 10 + 500 * Math.exp(-((x - cx) ** 2 + (y - cy) ** 2) / (2 * 1.2 ** 2));
+    const c = centroid(px, n, 15, 15, 4, 10, 1)!;
+    expect(Math.abs(c.x - cx)).toBeLessThan(0.05);
+    expect(Math.abs(c.y - cy)).toBeLessThan(0.05);
+    expect(c.snr).toBeGreaterThan(100);
   });
 });

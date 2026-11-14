@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import type { FrameMeta, GaiaSource } from "../lib/api";
 import { LAYER_ALL_MASKED, LAYER_SATURATED, type DecodedFrame } from "../lib/frame";
-import { PIXEL_ARCSEC, type GridWcs, mjdToYear, propagate, worldToPixel } from "../lib/physics";
+import { PIXEL_ARCSEC, type GridWcs, mjdToYear, planetXShift, propagate, worldToPixel } from "../lib/physics";
+import { targetPixel, type MotionTarget } from "../lib/validate";
 import type { Mode } from "../lib/urlState";
 
 export interface Hover {
@@ -24,6 +25,10 @@ interface Props {
   onPick: (h: Hover) => void;
   /** Frames are still arriving: blur the image under the Processing overlay. */
   busy?: boolean;
+  /** Preset target: a pulsing ring follows it from visit to visit. */
+  target?: MotionTarget | null;
+  /** Planet X overlay: distance (AU) and the reference visit's time; the body sits at the centre then. */
+  planetX?: { au: number; refMjd: number; refLabel: string } | null;
   label: React.ReactNode;
   badges: React.ReactNode;
   children?: React.ReactNode;
@@ -131,6 +136,65 @@ export function BlinkViewer(p: Props) {
       }
     }
 
+    if (p.planetX && p.frame) {
+      // Where a body at the field centre on the reference visit appears on this visit (Earth-orbit parallax).
+      const [de, dn] = planetXShift(p.grid.crval[0], p.grid.crval[1], p.planetX.refMjd, p.frame.t_mid, p.planetX.au);
+      const cosd = Math.cos((p.grid.crval[1] * Math.PI) / 180) || 1e-9;
+      const start = toCanvas(...worldToPixel(p.grid, p.grid.crval[0], p.grid.crval[1]));
+      const end = toCanvas(...worldToPixel(p.grid, p.grid.crval[0] + de / 3600 / cosd, p.grid.crval[1] + dn / 3600));
+      const jump = Math.hypot(de, dn);
+      const label = jump >= 60 ? `${(jump / 60).toFixed(1)}′` : `${jump.toFixed(0)}″`;
+      const W = c.width;
+      const inside = end[0] >= 0 && end[1] >= 0 && end[0] <= W && end[1] <= W;
+      // Clip the segment to the field so the arrow stops at the edge when the planet leaves it.
+      let tEnd = 1;
+      for (const [d0, d1] of [[start[0], end[0]], [start[1], end[1]]]) {
+        if (d1 > W) tEnd = Math.min(tEnd, (W - d0) / (d1 - d0));
+        if (d1 < 0) tEnd = Math.min(tEnd, (0 - d0) / (d1 - d0));
+      }
+      const tip: [number, number] = [start[0] + (end[0] - start[0]) * tEnd, start[1] + (end[1] - start[1]) * tEnd];
+      g.strokeStyle = "#E04CF0";
+      g.fillStyle = "#E04CF0";
+      g.lineWidth = 1.5 * dpr;
+      g.setLineDash([6 * dpr, 4 * dpr]);
+      g.beginPath();
+      g.moveTo(start[0], start[1]);
+      g.lineTo(tip[0], tip[1]);
+      g.stroke();
+      g.setLineDash([]);
+      g.beginPath();
+      g.arc(start[0], start[1], 5 * dpr, 0, Math.PI * 2);
+      g.stroke();
+      if (jump > 1) {
+        const ang = Math.atan2(tip[1] - start[1], tip[0] - start[0]);
+        if (inside) {
+          g.beginPath();
+          g.arc(end[0], end[1], 9 * dpr, 0, Math.PI * 2);
+          g.stroke();
+        } else {
+          const h = 10 * dpr;
+          g.beginPath();
+          g.moveTo(tip[0], tip[1]);
+          g.lineTo(tip[0] - h * Math.cos(ang - 0.45), tip[1] - h * Math.sin(ang - 0.45));
+          g.lineTo(tip[0] - h * Math.cos(ang + 0.45), tip[1] - h * Math.sin(ang + 0.45));
+          g.closePath();
+          g.fill();
+        }
+        g.font = `${11 * dpr}px "JetBrains Mono", monospace`;
+        const text = inside ? `Planet X? ${label}` : `${label} → leaves the field`;
+        const tw = g.measureText(text).width;
+        const lx = Math.min(Math.max((start[0] + tip[0]) / 2 - tw / 2, 6 * dpr), W - tw - 6 * dpr);
+        const ly = Math.min(Math.max((start[1] + tip[1]) / 2 - 8 * dpr, 14 * dpr), W - 30 * dpr);
+        g.fillStyle = "rgba(11,11,15,0.75)";
+        g.fillRect(lx - 4 * dpr, ly - 11 * dpr, tw + 8 * dpr, 15 * dpr);
+        g.fillStyle = "#E04CF0";
+        g.fillText(text, lx, ly);
+      } else {
+        g.font = `${11 * dpr}px "JetBrains Mono", monospace`;
+        g.fillText(`Planet X here on ${p.planetX.refLabel}`, start[0] + 8 * dpr, start[1] - 8 * dpr);
+      }
+    }
+
     // Centre crosshair (gap in the middle so the target stays visible).
     const cc = toCanvas((n - 1) / 2, (n - 1) / 2);
     g.strokeStyle = "rgba(255,255,255,0.5)";
@@ -163,7 +227,9 @@ export function BlinkViewer(p: Props) {
       g.strokeStyle = "#FFFFFF";
       g.strokeRect(hx - s / 2, hy - s / 2, s, s);
     }
-  }, [p.grid, p.decoded, p.frame, p.gaia, p.showGaia, p.showFlags, p.hover, p.mode, p.epochTimes, n]);
+  }, [p.grid, p.decoded, p.frame, p.gaia, p.showGaia, p.showFlags, p.hover, p.mode, p.epochTimes, p.planetX, n]);
+
+  const ring = p.target && p.grid && p.frame ? targetPixel(p.grid, p.target, p.frame.t_mid) : null;
 
   const pick = (e: React.MouseEvent<HTMLCanvasElement>): Hover | null => {
     if (!n) return null;
@@ -199,6 +265,10 @@ export function BlinkViewer(p: Props) {
             <span className="now">▲ brighter now</span>
             <span className="before">▼ brighter before</span>
           </div>
+        )}
+        {ring && (
+          <span className="mover-ring" aria-hidden="true"
+                style={{ left: `${((ring[0] + 0.5) / n) * 100}%`, top: `${((n - 1 - ring[1] + 0.5) / n) * 100}%` }} />
         )}
         <div className="compass" aria-hidden="true">N ↑ · E ←</div>
         {p.children}
