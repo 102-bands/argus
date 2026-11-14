@@ -22,6 +22,9 @@ cd web && npm install && npm run dev                                # http://loc
 Tests: `uv run pytest` (add `-m network` for live archive checks) and `npm test`.
 Benchmark the archive reader or a full live job: `uv run python scripts/bench_fetch.py --help`.
 
+## Deploy
+One Docker image from the repo root ([`Dockerfile`](Dockerfile)): it builds the web app and serves it and the API from one uvicorn process. Railway picks up [`railway.json`](railway.json) with no extra settings. Optional: a volume at `/data` for the cache (then set `RAILWAY_RUN_UID=0`), and `VITE_UMAMI_WEBSITE_ID` / `VITE_SITE_DOMAIN` for analytics. Pick a US-East region: the SPHEREx bucket is in us-east-1.
+
 Section numbers (§) in code comments refer to the team's internal product spec.
 
 ## Use of AI tools (Space Apps rule)

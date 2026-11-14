@@ -27,6 +27,7 @@ from .physics import CoordError, group_epochs, parse_dec, parse_ra
 from .pixels import make_source
 from .security import SecurityMiddleware, limiter
 from .sia import CoverageService, latest_release
+from .web import mount_web
 from .targets import TARGETS
 
 log = logging.getLogger("argus")
@@ -244,6 +245,9 @@ def create_app() -> FastAPI:
             pts = [p for p in pts if p["detector"] == detector]
         return cached_json(pts, 86400)
 
+    # Last, so every /api route above wins: the built site and its client-side routes.
+    if s.web_dir and (s.web_dir / "index.html").is_file():
+        mount_web(app, s.web_dir)
     return app
 
 

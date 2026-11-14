@@ -1,0 +1,12 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+web/dist
+api/data
+api/tests
+**/*.log
+.git
+docs
+PRD.md
+CLAUDE.md

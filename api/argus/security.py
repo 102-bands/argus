@@ -36,8 +36,23 @@ SECURITY_HEADERS = [
     (b"permissions-policy", b"geolocation=(), camera=(), microphone=()"),
     (b"cross-origin-opener-policy", b"same-origin"),
     (b"cross-origin-resource-policy", b"same-site"),
-    (b"content-security-policy", b"frame-ancestors 'none'; default-src 'none'"),
 ]
+API_CSP = b"frame-ancestors 'none'; default-src 'none'"
+# The site's policy (PRD §11.3). /embed may be framed by other sites; nothing else may.
+_SITE_CSP = ("default-src 'self'; script-src 'self' https://cloud.umami.is 'wasm-unsafe-eval'; "
+             # data: — Aladin Lite inlines its wasm and fonts as data: URLs.
+             "connect-src 'self' data: https://gateway.umami.is https://cloud.umami.is https://irsa.ipac.caltech.edu "
+             "https://alasky.cds.unistra.fr; img-src 'self' data: blob: https://irsa.ipac.caltech.edu "
+             "https://alasky.cds.unistra.fr; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; "
+             "font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors ")
+SITE_CSP = (_SITE_CSP + "'none'").encode()
+EMBED_CSP = (_SITE_CSP + "*").encode()
+
+
+def csp_for(path: str) -> bytes:
+    if path.startswith("/api"):
+        return API_CSP
+    return EMBED_CSP if path == "/embed" or path.startswith("/embed/") else SITE_CSP
 
 
 class SecurityMiddleware:
@@ -53,16 +68,21 @@ class SecurityMiddleware:
         for name, value in scope.get("headers", []):
             if name == b"content-length" and value.isdigit() and int(value) > MAX_BODY_BYTES:
                 await send({"type": "http.response.start", "status": 413,
-                            "headers": [(b"content-type", b"application/problem+json"), *SECURITY_HEADERS]})
+                            "headers": [(b"content-type", b"application/problem+json"), *SECURITY_HEADERS,
+                                        (b"content-security-policy", API_CSP)]})
                 await send({"type": "http.response.body",
                             "body": b'{"type":"about:blank","title":"Payload too large","status":413}'})
                 return
+
+        csp = csp_for(scope.get("path", ""))
 
         async def send_wrapper(message):
             if message["type"] == "http.response.start":
                 headers = [(k, v) for k, v in message.get("headers", []) if k.lower() not in (b"server", b"x-powered-by")]
                 present = {k.lower() for k, _ in headers}
                 headers += [h for h in SECURITY_HEADERS if h[0] not in present]
+                if b"content-security-policy" not in present:
+                    headers.append((b"content-security-policy", csp))
                 message = {**message, "headers": headers}
             await send(message)
 

@@ -1,0 +1,34 @@
+# One image for Railway: build the web app, then serve it and the API from one uvicorn process.
+# Built from the repo root, so Railway needs no root-directory setting.
+
+FROM node:22-alpine AS web
+WORKDIR /web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+# Railway passes service variables with these names as build args (set once Umami exists).
+ARG VITE_UMAMI_WEBSITE_ID=
+ARG VITE_SITE_DOMAIN=
+RUN npm run build \
+ && find dist -type f \( -name '*.js' -o -name '*.css' -o -name '*.html' -o -name '*.json' -o -name '*.svg' \
+      -o -name '*.bin' -o -name '*.wasm' -o -name '*.map' \) -size +1k -exec gzip -k -9 {} +
+
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONUTF8=1 \
+    UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PROJECT_ENVIRONMENT=/opt/venv
+COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /usr/local/bin/uv
+
+WORKDIR /srv
+COPY api/pyproject.toml api/uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+COPY api/argus ./argus
+COPY api/scripts ./scripts
+COPY --from=web /web/dist /srv/web
+
+# Non-root user. With a Railway volume at /data, set RAILWAY_RUN_UID=0 if the mount isn't writable.
+RUN useradd --uid 10001 --no-create-home argus && mkdir -p /data && chown argus /data
+USER argus
+ENV PATH=/opt/venv/bin:$PATH CACHE_DIR=/data WEB_DIR=/srv/web PORT=8000
+EXPOSE 8000
+# "::" accepts IPv4 and IPv6.
+CMD ["sh", "-c", "uvicorn argus.main:app --host :: --port ${PORT} --proxy-headers --forwarded-allow-ips='*' --no-server-header"]

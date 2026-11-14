@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     abandon_grace_s: int = 30  # cancel a job this long after its last viewer leaves
     rss_limit_mb: int = 1500
     allowed_origins: str = "http://localhost:5173"
+    web_dir: Path | None = None  # built frontend (web/dist); set in the Docker image, unset in dev
 
     @property
     def collection_list(self) -> list[str]:
