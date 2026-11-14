@@ -30,5 +30,5 @@ RUN useradd --uid 10001 --no-create-home argus && mkdir -p /data && chown argus 
 USER argus
 ENV PATH=/opt/venv/bin:$PATH CACHE_DIR=/data WEB_DIR=/srv/web PORT=8000
 EXPOSE 8000
-# "::" accepts IPv4 and IPv6.
-CMD ["sh", "-c", "uvicorn argus.main:app --host :: --port ${PORT} --proxy-headers --forwarded-allow-ips='*' --no-server-header"]
+# 0.0.0.0: Railway routes public traffic and health checks over IPv4 ("::" failed to respond there).
+CMD ["sh", "-c", "uvicorn argus.main:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*' --no-server-header"]
