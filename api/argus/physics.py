@@ -201,7 +201,7 @@ def decode_flag_names(header) -> dict[int, str]:
     return names
 
 
-# Display mask (PRD §5.1, revised in docs/memory/decisions.md #7). Saturated star cores carry
+# Display mask (PRD §5.1, revised by the team). Saturated star cores carry
 # TRANSIENT/OVERFLOW/SUR_ERROR/BLOOM, so the PRD's single list blanked every bright target.
 # HARD bits are detector defects, always masked. SOFT bits are masked only where SOURCE (21) is not set.
 # TRANSIENT (0), OVERFLOW (1), NONLINEAR (15) and BLOOM (26) are never masked; they are shown as badges.

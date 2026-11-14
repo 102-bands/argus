@@ -29,7 +29,7 @@ from .sia import Exposure
 
 log = logging.getLogger("argus.pixels")
 
-S3_BLOCK = 256 * 1024  # see docs/memory/gotchas.md: the 5 MB default reads most of the file
+S3_BLOCK = 256 * 1024  # the fsspec 5 MB default reads most of the file
 HDUS = ("IMAGE", "FLAGS", "VARIANCE", "ZODI")
 MAX_RESPONSE_BYTES = 32 * 1024 * 1024
 
@@ -135,7 +135,7 @@ BLOCK = 2880
 HEAD_BYTES = 64 * 1024
 TAIL_BYTES = 64 * 1024
 # SPHEREx L2 files end with ... VARIANCE, ZODI, EPSF, WCS-WAVE. Header and data sizes after FLAGS,
-# measured on DR1 and QR3 files (docs/memory/gotchas.md). Only used to guess where to prefetch.
+# measured on DR1 and QR3 files. Only used to guess where to prefetch.
 TAIL_LAYOUT = {"zodi_hdr": 11520, "var_hdr": 11520, "epsf_hdr": 5760, "epsf_data": 3862080, "wave": 5760}
 _TFORM = re.compile(r"\s*(\d*)([LXBIJKAEDCMPQ])")
 _TFORM_BYTES = {"L": 1, "X": 1, "B": 1, "I": 2, "J": 4, "K": 8, "E": 4, "D": 8, "C": 8, "M": 16, "A": 1, "P": 8, "Q": 16}
