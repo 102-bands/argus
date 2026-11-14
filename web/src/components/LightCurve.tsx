@@ -8,16 +8,22 @@ const DET_COLOURS: Record<string, string> = {
 };
 
 interface Props {
+  width?: number;
+  height?: number;
   points: PhotPoint[];
   band: string;
   mira: boolean; // R Dra: offer the phase axis
 }
 
-const W = 300;
-const H = 170;
-const M = { l: 40, r: 8, t: 8, b: 24 };
+// Chart size in viewBox units; the Plots view passes a larger size so labels stay small.
+const DEFAULT_W = 300;
+const DEFAULT_H = 170;
 
-export function LightCurve({ points, band, mira }: Props) {
+export function LightCurve({ points, band, mira, width = DEFAULT_W, height = DEFAULT_H }: Props) {
+  const W = width;
+  const H = height;
+  // Wider charts (Plots view) use bigger labels, so they need a wider left margin for the flux axis.
+  const M = width > 400 ? { l: 56, r: 10, t: 10, b: 28 } : { l: 40, r: 8, t: 8, b: 24 };
   const [phase, setPhase] = useState(false);
   const pts = useMemo(() => points.filter((p) => (band === "all" || p.detector === band) && p.flux_ujy > 0), [points, band]);
 

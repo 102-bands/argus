@@ -123,8 +123,8 @@ export default function SkyContext({ ra, dec, size }: Props) {
   }
   return (
     <div>
-      <div ref={div} style={{ width: "100%", aspectRatio: "1.4", background: "var(--ink-2)" }} aria-label="Sky map around the field" role="img" />
-      <p className="note" style={{ fontSize: 11, marginBottom: 0 }}>SPHEREx DR1 all-sky map (IRSA). The cyan box is the blink field.</p>
+      <div ref={div} className="sky-map" aria-label="Sky map around the field" role="img" />
+      <p className="note sky-note">SPHEREx all-sky map (IRSA). The cyan box is the blink field.</p>
     </div>
   );
 }

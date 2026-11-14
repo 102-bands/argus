@@ -4,18 +4,24 @@ import { useEffect, useMemo, useState } from "react";
 import type { Epoch, PhotPoint } from "../lib/api";
 import { track } from "../lib/analytics";
 
-const W = 300;
-const H = 170;
-const M = { l: 40, r: 8, t: 8, b: 24 };
+// Chart size in viewBox units; the Plots view passes a larger size so labels stay small.
+const DEFAULT_W = 300;
+const DEFAULT_H = 170;
 const R = 40; // binning resolution, Δ ln λ = 1/R
 
 interface Props {
+  width?: number;
+  height?: number;
   points: PhotPoint[];
   epochs: Epoch[];
   initialEpoch: number | null;
 }
 
-export function Spectrum({ points, epochs, initialEpoch }: Props) {
+export function Spectrum({ points, epochs, initialEpoch, width = DEFAULT_W, height = DEFAULT_H }: Props) {
+  const W = width;
+  const H = height;
+  // Wider charts (Plots view) use bigger labels, so they need a wider left margin for the flux axis.
+  const M = width > 400 ? { l: 56, r: 10, t: 10, b: 28 } : { l: 40, r: 8, t: 8, b: 24 };
   const withData = useMemo(() => epochs.filter((e) => points.some((p) => p.epoch === e.id && p.flux_ujy > 0)), [epochs, points]);
   const [epoch, setEpoch] = useState<number | null>(initialEpoch);
   useEffect(() => {

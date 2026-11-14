@@ -173,29 +173,34 @@ export function BlinkViewer(p: Props) {
   };
 
   return (
-    <div className="viewer">
-      <div className="frame-label" aria-hidden="true">{p.label}</div>
-      <div className="badges">{p.badges}</div>
-      <canvas ref={base} role="img" aria-label="SPHEREx image of the selected field" />
-      <canvas
-        ref={over}
-        className="overlay"
-        style={{ pointerEvents: "auto", cursor: "crosshair" }}
-        onPointerMove={(e) => p.onHover(pick(e))}
-        onPointerLeave={() => p.onHover(null)}
-        onClick={(e) => {
-          const h = pick(e);
-          if (h) p.onPick(h);
-        }}
-      />
-      {p.mode === "diff" && (
-        <div className="legend" aria-label="Colour legend">
-          <span className="now">▲ brighter now</span>
-          <span className="before">▼ brighter before</span>
-        </div>
-      )}
-      <div className="compass" aria-hidden="true">N ↑ · E ←</div>
-      {p.children}
+    <div className="viewer-frame">
+      {/* A row above the square, not overlaid: on narrow screens the label and badges wrap instead of colliding. */}
+      <div className="viewer-head">
+        <div className="frame-label" aria-hidden="true">{p.label}</div>
+        <div className="badges">{p.badges}</div>
+      </div>
+      <div className="viewer">
+        <canvas ref={base} role="img" aria-label="SPHEREx image of the selected field" />
+        <canvas
+          ref={over}
+          className="overlay"
+          style={{ pointerEvents: "auto", cursor: "crosshair" }}
+          onPointerMove={(e) => p.onHover(pick(e))}
+          onPointerLeave={() => p.onHover(null)}
+          onClick={(e) => {
+            const h = pick(e);
+            if (h) p.onPick(h);
+          }}
+        />
+        {p.mode === "diff" && (
+          <div className="legend" aria-label="Colour legend">
+            <span className="now">▲ brighter now</span>
+            <span className="before">▼ brighter before</span>
+          </div>
+        )}
+        <div className="compass" aria-hidden="true">N ↑ · E ←</div>
+        {p.children}
+      </div>
     </div>
   );
 }

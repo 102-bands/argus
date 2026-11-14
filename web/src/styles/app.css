@@ -15,16 +15,17 @@ a:hover { color: var(--white); }
 button, input, select { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.mono, .label { font-family: var(--font-mono); }
-.label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-3); }
+.mono { font-family: var(--font-mono); }
+/* Section headings: quiet sentence case, so a screen full of panels doesn't shout. */
+.label, .ctl-h { font: 500 12px/1.3 var(--font-sans); color: var(--fg-3); letter-spacing: 0.01em; }
 
-/* Shell */
+/* Shell. Phones scroll; from 1024px the page is locked to the screen (see the dashboard block). */
 .app { min-height: 100%; display: flex; flex-direction: column; }
 .topbar {
-  display: flex; align-items: center; gap: var(--gap); padding: 12px 20px;
+  display: flex; align-items: center; gap: var(--gap); padding: 8px 16px; min-height: 48px;
   border-bottom: 1px solid var(--line);
 }
-.topbar .logo { height: 22px; display: block; }
+.topbar .logo { height: 20px; display: block; }
 .topbar nav { margin-left: auto; display: flex; gap: 16px; align-items: center; }
 .topbar nav a { color: var(--fg-2); text-decoration: none; font-size: 13px; }
 .topbar nav a:hover { color: var(--white); }
@@ -33,16 +34,19 @@ button, input, select { font: inherit; color: inherit; }
   background: transparent; border: 1px solid var(--line-2); padding: 6px 12px; cursor: pointer;
   border-radius: 0; font-size: 13px; line-height: 1.2; white-space: nowrap;
 }
-.btn:hover { border-color: var(--white); }
+.btn:hover:not(:disabled) { border-color: var(--white); }
+.btn:disabled { opacity: 0.35; cursor: default; }
 .btn[aria-pressed="true"], .btn.active { background: var(--white); color: var(--ink); border-color: var(--white); }
 .btn.icon { padding: 6px 9px; font-family: var(--font-mono); }
 .seg { display: inline-flex; }
 .seg .btn + .btn { border-left: none; }
+.seg.fill { display: flex; }
+.seg.fill .btn { flex: 1; text-align: center; }
 
 /* Search */
 .search { flex: 1; max-width: 560px; position: relative; }
 .search input {
-  width: 100%; background: var(--ink-2); border: 1px solid var(--line-2); padding: 8px 12px; border-radius: 0;
+  width: 100%; background: var(--ink-2); border: 1px solid var(--line-2); padding: 7px 12px; border-radius: 0;
   font-family: var(--font-mono); font-size: 13px;
 }
 .search input[aria-invalid="true"] { border-color: var(--amber); }
@@ -54,25 +58,25 @@ button, input, select { font: inherit; color: inherit; }
 .search li button { width: 100%; text-align: left; background: none; border: none; padding: 8px 12px; cursor: pointer; }
 .search li button:hover, .search li[aria-selected="true"] button { background: var(--ink-3); }
 
-/* Explorer grid */
-.explorer {
-  flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 0;
-}
-.stage { display: flex; flex-direction: column; border-right: 1px solid var(--line); min-width: 0; }
-.side { display: flex; flex-direction: column; min-width: 0; }
-.panel { border-bottom: 1px solid var(--line); padding: 14px 16px; }
-.panel h2 { margin: 0 0 10px; }
+/* Explorer: stacked on phones (image, controls, details) */
+.explorer { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.stage { order: 1; display: flex; flex-direction: column; min-width: 0; }
+.rail-left { order: 2; display: flex; flex-wrap: wrap; gap: 14px 20px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.side { order: 3; display: flex; flex-direction: column; min-width: 0; border-top: 1px solid var(--line); }
+.panel { border-bottom: 1px solid var(--line); padding: 12px 16px; }
+.panel h2 { margin: 0 0 8px; }
 
-.viewer-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; min-height: 360px; position: relative; }
-.viewer { position: relative; width: min(100%, 72vh, 720px); aspect-ratio: 1; border: 1px solid var(--line); background: var(--ink-2); }
+/* Viewer: a header row (label + badges) above a square image */
+.viewer-wrap { display: flex; align-items: center; justify-content: center; padding: 12px 16px; position: relative; }
+.viewer-frame { width: min(100%, 720px); }
+.viewer-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; min-height: 24px; margin-bottom: 6px; }
+.viewer { position: relative; width: 100%; aspect-ratio: 1; border: 1px solid var(--line); background: var(--ink-2); }
 .viewer canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
 .viewer .overlay { pointer-events: none; }
-.viewer .frame-label {
-  position: absolute; left: 0; top: -28px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; color: var(--fg);
-}
-.viewer .frame-label .muted { color: var(--fg-3); }
-.viewer .badges { position: absolute; right: 0; top: -28px; display: flex; gap: 6px; }
-.badge { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 6px; border: 1px solid; }
+.frame-label { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; color: var(--fg); }
+.frame-label .muted { color: var(--fg-3); }
+.badges { display: flex; gap: 6px; }
+.badge { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 6px; border: 1px solid; }
 .badge.warn { color: var(--amber); border-color: var(--amber); }
 .badge.ok { color: var(--green); border-color: var(--green); }
 .badge.info { color: var(--cyan); border-color: var(--cyan); }
@@ -86,26 +90,34 @@ button, input, select { font: inherit; color: inherit; }
 .progress { width: 60%; height: 2px; background: var(--line); }
 .progress > div { height: 100%; background: var(--cyan); transition: width 0.3s; }
 
-/* Controls */
-.controls { border-top: 1px solid var(--line); padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+/* Controls: grouped. "bar" (embed, phones) wraps in a row; "rail" stacks in the dashboard's left column. */
+.controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end; }
+.controls.bar { border-top: 1px solid var(--line); padding: 10px 16px; }
+.ctl-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .ctl { display: flex; align-items: center; gap: 8px; }
 .ctl input[type="range"] { width: 110px; accent-color: var(--cyan); }
 .ctl select { background: var(--ink-2); border: 1px solid var(--line-2); padding: 5px 8px; border-radius: 0; }
+.controls .seg.fill .btn { font-size: 12px; padding-top: 6px; padding-bottom: 6px; min-width: 30px; }
+.ctl > .seg.fill { flex: 1; }
 
-/* Timeline */
-.timeline { padding: 12px 20px 16px; border-top: 1px solid var(--line); }
+/* Timeline (full under the image on phones; a thin strip above it in the dashboard) */
+.timeline { padding: 10px 16px 14px; border-top: 1px solid var(--line); }
 .timeline ol { list-style: none; margin: 8px 0 0; padding: 0; display: flex; gap: 0; position: relative; }
 .timeline ol::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 1px; background: var(--line-2); }
 .timeline li { flex: 1; position: relative; }
 .timeline li button { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 0; width: 100%; }
-.timeline .dot { width: 15px; height: 15px; border: 1px solid var(--fg-2); background: var(--ink); position: relative; z-index: 1; }
+.timeline li button:disabled { cursor: default; }
+.timeline .dot { width: 15px; height: 15px; border: 1px solid var(--fg-2); background: var(--ink); position: relative; z-index: 1; flex: none; }
 .timeline li.loaded .dot { background: var(--fg-3); }
 .timeline li.current .dot { background: var(--cyan); border-color: var(--cyan); }
 .timeline li.ref .dot { border-color: var(--magenta); box-shadow: 0 0 0 2px var(--magenta); }
 .timeline .t { font-family: var(--font-mono); font-size: 11px; color: var(--fg-2); }
+.timeline li.current .t { color: var(--white); }
 .timeline .n { font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); }
 
-/* Inspector */
+.timeline.compact { order: -1; border-top: none; border-bottom: 1px solid var(--line); }
+
+/* Inspector and charts */
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-family: var(--font-mono); font-size: 12px; }
 .kv dt { color: var(--fg-3); }
 .kv dd { margin: 0; color: var(--fg); overflow-wrap: anywhere; }
@@ -118,15 +130,27 @@ button, input, select { font: inherit; color: inherit; }
 .det-key { display: flex; flex-wrap: wrap; gap: 4px 10px; font-family: var(--font-mono); font-size: 10px; margin-top: 6px; color: var(--fg-2); }
 .det-key span::before { content: "■ "; color: var(--c); }
 
-/* Presets */
-.presets { display: grid; gap: 6px; }
-.preset { text-align: left; background: none; border: 1px solid var(--line); padding: 8px 10px; cursor: pointer; display: block; width: 100%; text-decoration: none; color: inherit; }
+/* Plots view (replaces the image in the centre) */
+.plots-wrap { padding: 16px; }
+.plots { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px 28px; align-content: start; }
+.plot-title { font-weight: 500; font-size: 15px; margin: 0 0 2px; }
+.plot .note { margin: 0 0 10px; max-width: 60ch; }
+.plots .chart text { font-size: 11px; }
+.plots .det-key { font-size: 11px; }
+
+/* Sky context map */
+.sky-map { width: 100%; aspect-ratio: 1.4; background: var(--ink-2); }
+.sky-note { font-size: 11px; margin: 6px 0 0; }
+
+/* Presets: one line each */
+.presets { display: grid; gap: 4px; }
+.preset { text-align: left; background: none; border: 1px solid var(--line); padding: 6px 10px; cursor: pointer; display: block; width: 100%; text-decoration: none; color: inherit; }
 .preset:hover, .preset[aria-current="true"] { border-color: var(--white); }
-.preset strong { font-weight: 500; display: block; }
-.preset small { color: var(--fg-3); font-size: 12px; }
+.preset strong { font-weight: 500; font-size: 13px; display: block; }
+.preset small { display: block; color: var(--fg-3); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .note { color: var(--fg-2); font-size: 13px; }
 
-.footer { border-top: 1px solid var(--line); padding: 12px 20px; font-size: 12px; color: var(--fg-3); display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.footer { border-top: 1px solid var(--line); padding: 8px 16px; font-size: 12px; color: var(--fg-3); display: flex; flex-wrap: wrap; gap: 4px 20px; }
 .footer a { color: var(--fg-2); }
 
 /* Dialog */
@@ -144,21 +168,60 @@ button, input, select { font: inherit; color: inherit; }
 .prose p, .prose li { color: var(--fg-2); }
 .prose blockquote { border-left: 2px solid var(--cyan); margin: 0; padding: 4px 16px; color: var(--fg-2); }
 
-/* Embed */
+/* Embed: the image fills whatever height the host page gives the iframe */
 .embed { height: 100%; display: flex; flex-direction: column; }
-.embed .viewer-wrap { padding: 32px 8px 8px; }
-.embed .open-link { position: absolute; right: 8px; top: 6px; font-size: 12px; }
+.embed .viewer-wrap { flex: 1; min-height: 0; container-type: size; padding: 28px 8px 8px; }
+.embed .viewer-frame { width: min(100cqw, calc(100cqh - 30px)); }
+.embed .open-link { position: absolute; right: 8px; top: 6px; font-size: 12px; z-index: 2; }
 
-/* Mobile (PRD §9.2) */
-@media (max-width: 767px) {
-  .topbar { flex-wrap: wrap; padding: 10px 16px; }
-  .search { order: 3; flex-basis: 100%; max-width: none; }
-  .explorer { grid-template-columns: 1fr; }
-  .stage { border-right: none; }
-  .viewer-wrap { padding: 36px 16px 16px; min-height: 0; }
-  .viewer { width: 100%; }
-  .controls, .timeline { padding-left: 16px; padding-right: 16px; }
-  .ctl input[type="range"] { width: 90px; }
+/* Dashboard: from 1024px wide everything fits one screen. Only the rails scroll, and only on short screens. */
+@media (min-width: 1024px) {
+  .app { height: 100vh; min-height: 0; overflow: hidden; }
+  .app > main { flex: 1; min-height: 0; }
+  .app > main.prose {
+    overflow-y: auto; max-width: none; margin: 0;
+    padding-left: max(20px, calc((100% - 720px) / 2)); padding-right: max(20px, calc((100% - 720px) / 2));
+  }
+  .footer { flex-wrap: nowrap; white-space: nowrap; overflow: hidden; }
+
+  .explorer { display: grid; grid-template-columns: 232px minmax(0, 1fr) 300px; }
+  .rail { min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+  .rail-left { order: 0; flex-direction: column; flex-wrap: nowrap; gap: 14px; padding: 14px; border-top: none; border-right: 1px solid var(--line); }
+  .rail-left > .ctl-group:first-child { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .stage { order: 0; min-height: 0; }
+  .side { order: 0; border-top: none; border-left: 1px solid var(--line); }
+
+  .rail-left { overflow-x: hidden; }
+  .controls.rail { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 14px; }
+  .rail-left .seg.fill .btn { min-width: 0; padding-left: 0; padding-right: 0; }
+  .controls.rail .ctl select { flex: 1; min-width: 0; }
+  .controls.rail .ctl input[type="range"] { flex: 1; width: auto; min-width: 0; }
+
+  /* The square takes the smaller of the free width and height. */
+  .viewer-wrap { flex: 1; min-height: 0; container-type: size; padding: 14px 24px 18px; }
+  .viewer-frame { width: min(100cqw, calc(100cqh - 30px)); }
+
+  .plots-wrap { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 24px; }
+
+  /* Timeline as one thin strip above the image; exposure counts move to the tooltip. */
+  .timeline.compact { display: flex; align-items: center; gap: 16px; padding: 8px 20px; }
+  .timeline.compact > .label { white-space: nowrap; }
+  .timeline.compact ol { flex: 1; margin: 0; align-items: center; }
+  .timeline.compact ol::before { top: 50%; }
+  .timeline.compact li button { flex-direction: row; align-items: center; gap: 6px; }
+  .timeline.compact .dot { width: 11px; height: 11px; }
+  .timeline.compact .t { position: relative; z-index: 1; background: var(--ink); padding-right: 6px; white-space: nowrap; }
+  .timeline.compact .n { display: none; }
+
+  .side .panel { padding: 10px 16px; }
+  .sky-map { aspect-ratio: auto; height: 150px; }
+}
+/* Laptop-height screens (up to 880px tall): drop the presets' second line and shrink the map. */
+@media (min-width: 1024px) and (max-height: 880px) {
+  .preset small { display: none; }
+  .preset { padding: 5px 10px; }
+  .sky-map { height: 120px; }
+  .side .note { font-size: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

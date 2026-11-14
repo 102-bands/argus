@@ -3,6 +3,8 @@
 export type Band = "all" | "D1" | "D2" | "D3" | "D4" | "D5" | "D6";
 export type Stretch = "asinh" | "linear" | "log" | "zscale";
 export type Mode = "blink" | "diff" | "stack";
+/** What the centre of the dashboard shows: the blink image or the charts. */
+export type Panel = "image" | "plots";
 
 export interface ViewState {
   ra: string | null;
@@ -15,11 +17,13 @@ export interface ViewState {
   epoch: number;
   gaia: boolean;
   flags: boolean;
+  view: Panel;
 }
 
 export const BANDS: Band[] = ["all", "D1", "D2", "D3", "D4", "D5", "D6"];
 export const STRETCHES: Stretch[] = ["asinh", "linear", "log", "zscale"];
 export const MODES: Mode[] = ["blink", "diff", "stack"];
+export const PANELS: Panel[] = ["image", "plots"];
 
 export const DEFAULTS: ViewState = {
   ra: null,
@@ -32,6 +36,7 @@ export const DEFAULTS: ViewState = {
   epoch: 0,
   gaia: false,
   flags: false,
+  view: "image",
 };
 
 function pick<T extends string>(v: string | null, allowed: T[], fallback: T): T {
@@ -56,6 +61,7 @@ export function readState(search: string): ViewState {
     epoch: Math.round(num(p.get("epoch"), 0, 99, DEFAULTS.epoch)),
     gaia: p.get("gaia") === "1",
     flags: p.get("flags") === "1",
+    view: pick(p.get("view"), PANELS, DEFAULTS.view),
   };
 }
 

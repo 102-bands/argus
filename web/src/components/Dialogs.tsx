@@ -58,6 +58,7 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
     ["D", "Toggle difference mode"],
     ["G", "Toggle Gaia predictions"],
     ["F", "Toggle the flags overlay"],
+    ["P", "Switch between the image and the plots"],
     ["1 – 6", "Show one detector (D1 to D6)"],
     ["0", "All detectors"],
     ["+ / −", "Faster or slower"],

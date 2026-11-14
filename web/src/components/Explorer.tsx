@@ -9,6 +9,7 @@ import { BlinkViewer, type Hover } from "./BlinkViewer";
 import { Controls } from "./Controls";
 import { Timeline } from "./Timeline";
 import { Inspector } from "./Inspector";
+import { Plots } from "./Plots";
 import { HelpDialog, ShareDialog } from "./Dialogs";
 
 const SkyContext = lazy(() => import("./SkyContext"));
@@ -175,11 +176,12 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       else if (k >= "0" && k <= "6") { const b = BANDS[Number(k)]; if (bandsAvailable.has(b)) setBand(b); }
       else if (k === "+" || k === "=") update({ speed: Math.max(100, view.speed - 100) });
       else if (k === "-" || k === "_") update({ speed: Math.min(2000, view.speed + 100) });
+      else if (k === "p" || k === "P") update({ view: view.view === "plots" ? "image" : "plots" });
       else if (k === "?") setHelpOpen(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [togglePlay, step, setMode, toggleGaia, toggleFlags, setBand, update, view.mode, view.speed, bandsAvailable]);
+  }, [togglePlay, step, setMode, toggleGaia, toggleFlags, setBand, update, view.mode, view.speed, view.view, bandsAvailable]);
 
   const bitmap = cur ? bitmaps.get(view.mode === "stack" ? "stack" : cur.key) ?? null : null;
   const decoded = cur ? data.decoded.get(cur.key) ?? null : null;
@@ -254,6 +256,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
 
   const controls = (
     <Controls
+      layout={embed ? "bar" : "rail"}
       playing={playing && canPlay}
       canPlay={canPlay}
       onPlay={togglePlay}
@@ -296,12 +299,24 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
     );
   }
 
+  const showPlots = view.view === "plots";
+
   return (
     <main className="explorer" id="main">
-      <div className="stage">
-        <div className="viewer-wrap">{viewer}</div>
+      <nav className="rail rail-left" aria-label="Controls">
+        <div className="ctl-group">
+          <span className="ctl-h" id="view-l">View</span>
+          <div className="seg fill" role="group" aria-labelledby="view-l">
+            <button className="btn" aria-pressed={!showPlots} onClick={() => update({ view: "image" })} title="The blink image (P)">Image</button>
+            <button className="btn" aria-pressed={showPlots} onClick={() => update({ view: "plots" })}
+                    title="Light curve and spectrum of the source at the centre (P)">Plots</button>
+          </div>
+        </div>
         {controls}
+      </nav>
+      <div className="stage">
         <Timeline
+          compact
           epochs={data.epochs}
           loaded={loadedEpochs}
           current={view.mode === "stack" ? null : cur?.epoch ?? null}
@@ -314,16 +329,23 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
           }}
           onRef={(ep) => update({ epoch: ep })}
         />
+        {showPlots ? (
+          <div className="plots-wrap">
+            <Plots photometry={data.photometry} band={view.band} isMira={fieldTarget?.id === "r-dra"} epochs={data.epochs}
+                   epoch={cur?.epoch ?? null} targetName={fieldTarget?.name ?? null} />
+          </div>
+        ) : (
+          <div className="viewer-wrap">{viewer}</div>
+        )}
       </div>
-      <aside className="side" aria-label="Details">
+      <aside className="rail side" aria-label="Details">
         {fieldTarget && (
           <section className="panel">
             <h2 className="label">{fieldTarget.name}</h2>
             <p className="note" style={{ margin: 0 }}>{fieldTarget.notes}</p>
           </section>
         )}
-        <Inspector hover={hover} grid={data.grid} decoded={decoded} frame={cur} photometry={data.photometry}
-                   band={view.band} isMira={fieldTarget?.id === "r-dra"} epochs={data.epochs} />
+        <Inspector hover={hover} grid={data.grid} decoded={decoded} frame={cur} />
         {field && (
           <section className="panel" aria-labelledby="ctx-h">
             <h2 id="ctx-h" className="label">Sky context</h2>
@@ -336,14 +358,14 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
           <h2 id="pre-h" className="label">Presets</h2>
           <div className="presets">
             {targets.map((t) => (
-              <a key={t.id} href={`/t/${t.id}`} className="preset" aria-current={field?.presetId === t.id}
+              <a key={t.id} href={`/t/${t.id}`} className="preset" aria-current={field?.presetId === t.id} title={t.notes}
                  onClick={(e) => {
                    e.preventDefault();
                    track("preset_click", { target: t.id });
                    navigate(`/t/${t.id}${t.band !== "all" ? `?band=${t.band}` : ""}`);
                  }}>
                 <strong>{t.name}</strong>
-                <small>{t.notes.split(".")[0]}.</small>
+                <small>{t.notes.split(/[.:]/)[0]}</small>
               </a>
             ))}
           </div>
