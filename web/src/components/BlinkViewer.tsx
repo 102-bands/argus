@@ -103,7 +103,7 @@ export function BlinkViewer(p: Props) {
         const a = toCanvas(...worldToPixel(p.grid, ra0, dec0));
         const b = toCanvas(...worldToPixel(p.grid, ra1, dec1));
         const movePx = Math.hypot(b[0] - a[0], b[1] - a[1]) / s;
-        const bright = src.g !== null && src.g < 17;
+        const bright = src.g !== null && src.g < 14; // non-movers only when bright, to keep the field readable
         if (!bright && movePx < MIN_ARROW_PX) continue;
         g.strokeStyle = "#22B8D8";
         g.lineWidth = 1.5 * dpr;

@@ -44,10 +44,14 @@ def main(tid: str) -> int:
     grid, n = make_grid(m["ra"], m["dec"], m["size_arcmin"])
     worst = 0.0
     print(f"{t.name}: epoch  predicted(x,y)   measured(x,y)   offset px")
-    for f in sorted((f for f in m["frames"] if f["product"] == "broadband"), key=lambda f: f["epoch"]):
+    # Measure in the target's own band: WISE 0855 is invisible in D1-D4, so a broadband centroid
+    # is pulled by field stars.
+    want = ("broadband", "all") if t.band == "all" else ("per_detector", t.band)
+    print(f"  band: {want[1]}")
+    for f in sorted((f for f in m["frames"] if (f["product"], f["detector"]) == want), key=lambda f: f["epoch"]):
         ra, dec = propagate(t.cat_ra, t.cat_dec, t.pmra, t.pmdec, mjd_to_year(f["t_mid"]) - t.cat_epoch)
         px, py = (float(v) for v in grid.world_to_pixel_values(ra, dec))
-        mx, my = centroid(read_frame(PRESETS / tid / "frames" / f"{f['key']}.bin"), px, py)
+        mx, my = centroid(read_frame(PRESETS / tid / "frames" / f"{f['key']}.bin"), px, py, r=3 if t.band != "all" else 4)
         off = float(np.hypot(mx - px, my - py))
         worst = max(worst, off)
         print(f"  {f['epoch_label']}   ({px:5.2f},{py:5.2f})   ({mx:5.2f},{my:5.2f})   {off:.2f}")

@@ -40,7 +40,7 @@ TARGETS: dict[str, Target] = {
     t.id: t
     for t in (
         _t("barnard", "Barnard's Star", 269.448503, 4.739420, 2016.0, -801.55, 10362.39, 3, "all",
-           "Fastest-moving star in the sky: about 2.5 px north over SPHEREx so far. Bright, so likely saturated."),
+           "Fastest-moving star in the sky: about 1.8 px north between Aug 2025 and Sep 2026, matching Gaia. Bright, so saturated."),
         _t("eps-indi-b", "ε Indi B", 331.076453, -56.793812, 2016.0, 3981.98, -2466.83, 3, "all",
            "Pair of brown dwarfs about 1 px of motion. ε Indi A sits 6.7′ away; widen to 15′ to see it."),
         _t("wise-0855", "WISE 0855−0714", 133.794760, -7.245146, 2010.5, -8188.0, 680.0, 3, "D6",
