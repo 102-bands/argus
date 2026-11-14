@@ -22,8 +22,8 @@ const DEFAULT_H = 170;
 export function LightCurve({ points, band, mira, width = DEFAULT_W, height = DEFAULT_H }: Props) {
   const W = width;
   const H = height;
-  // Wider charts (Plots view) use bigger labels, so they need a wider left margin for the flux axis.
-  const M = width > 400 ? { l: 56, r: 10, t: 10, b: 28 } : { l: 40, r: 8, t: 8, b: 24 };
+  // Room for tick labels plus an axis title on each axis.
+  const M = { l: 82, r: 24, t: 10, b: 50 };
   const [phase, setPhase] = useState(false);
   const pts = useMemo(() => points.filter((p) => (band === "all" || p.detector === band) && p.flux_ujy > 0), [points, band]);
 
@@ -40,7 +40,7 @@ export function LightCurve({ points, band, mira, width = DEFAULT_W, height = DEF
   const sy = (y: number) => H - M.b - ((y - y0) / Math.max(y1 - y0, 1e-9)) * (H - M.t - M.b);
 
   const yTicks = niceLogTicks(y0, y1);
-  const xTicks = phase ? [0, 0.25, 0.5, 0.75, 1] : timeTicks(x0, x1);
+  const xTicks = phase ? [0, 0.25, 0.5, 0.75, 1] : timeTicks(x0, x1, width > 400 ? 5 : 3);
   const anySat = pts.some((p) => p.saturated);
 
   return (
@@ -60,12 +60,15 @@ export function LightCurve({ points, band, mira, width = DEFAULT_W, height = DEF
           </g>
         ))}
         {xTicks.map((t) => (
-          <text key={t} x={sx(t)} y={H - 8} textAnchor="middle">
+          <text key={t} x={sx(t)} y={H - M.b + 16} textAnchor="middle">
             {phase ? t.toFixed(2) : mjdToDate(t).toISOString().slice(0, 7)}
           </text>
         ))}
         <line className="axis" x1={M.l} x2={M.l} y1={M.t} y2={H - M.b} />
         <line className="axis" x1={M.l} x2={W - M.r} y1={H - M.b} y2={H - M.b} />
+        <AxisTitles W={W} H={H} M={M}
+                    x={phase ? "Pulsation phase (0 to 1 = one 246-day cycle)" : "Date observed (UTC, linear scale)"}
+                    y="Brightness (log scale)" />
         {pts.map((p, i) => {
           const c = DET_COLOURS[p.detector];
           const lo = Math.log10(Math.max(p.flux_ujy - p.err, p.flux_ujy * 0.5));
@@ -107,8 +110,17 @@ function niceLogTicks(y0: number, y1: number): number[] {
   return out.length ? out : [10 ** ((y0 + y1) / 2)];
 }
 
-function timeTicks(x0: number, x1: number): number[] {
-  const n = 3;
+/** Axis titles: x centred under the tick labels, y rotated along the left edge. */
+export function AxisTitles({ W, H, M, x, y }: { W: number; H: number; M: { l: number; r: number; t: number; b: number }; x: string; y: string }) {
+  return (
+    <>
+      <text className="axis-title" x={M.l + (W - M.l - M.r) / 2} y={H - 6} textAnchor="middle">{x}</text>
+      <text className="axis-title" textAnchor="middle" transform={`translate(13 ${M.t + (H - M.t - M.b) / 2}) rotate(-90)`}>{y}</text>
+    </>
+  );
+}
+
+function timeTicks(x0: number, x1: number, n: number): number[] {
   return Array.from({ length: n }, (_, i) => x0 + ((x1 - x0) * (i + 0.5)) / n);
 }
 

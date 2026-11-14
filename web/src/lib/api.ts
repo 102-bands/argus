@@ -107,14 +107,19 @@ export async function loadPresetIndex(): Promise<Target[]> {
   }
 }
 
-export async function loadPresetManifest(id: string): Promise<Manifest | null> {
-  try {
-    const r = await fetch(`/presets/${encodeURIComponent(id)}/manifest.json`);
-    if (!r.ok || !(r.headers.get("content-type") || "").includes("json")) return null;
-    return (await r.json()) as Manifest;
-  } catch {
-    return null;
+/** A preset's static manifest for this field size: manifest-<size>.json, else the original manifest.json. */
+export async function loadPresetManifest(id: string, size: number): Promise<Manifest | null> {
+  for (const name of [`manifest-${size}.json`, "manifest.json"]) {
+    try {
+      const r = await fetch(`/presets/${encodeURIComponent(id)}/${name}`);
+      if (!r.ok || !(r.headers.get("content-type") || "").includes("json")) continue;
+      const m = (await r.json()) as Manifest;
+      if (Math.abs(m.size_arcmin - size) < 1e-6) return m;
+    } catch {
+      // try the next file
+    }
   }
+  return null;
 }
 
 export function frameUrl(key: string, presetId: string | null): string {

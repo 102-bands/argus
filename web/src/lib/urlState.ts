@@ -28,7 +28,7 @@ export const PANELS: Panel[] = ["image", "plots"];
 export const DEFAULTS: ViewState = {
   ra: null,
   dec: null,
-  size: 3,
+  size: 8,
   band: "all",
   speed: 500,
   stretch: "asinh",

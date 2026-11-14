@@ -127,9 +127,9 @@ export function useSkyData(field: Field | null, worker: Worker | null, retryToke
 
     (async () => {
       if (presetId) {
-        const m = await loadPresetManifest(presetId);
+        const m = await loadPresetManifest(presetId, field.size);
         if (ac.signal.aborted) return;
-        if (m && Math.abs(m.size_arcmin - field.size) < 1e-6) {
+        if (m) {
           applyManifest(m, true);
           return;
         }

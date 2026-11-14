@@ -118,7 +118,10 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
 
   const n = ready.length;
   const cur = n ? ready[((idx % n) + n) % n] : null;
-  const canPlay = n > 1 && view.mode !== "stack";
+  // Still building or decoding: the image is blurred under a "Processing" overlay and playback waits
+  // until every visit is in, so the first loop the user sees is the complete one.
+  const processing = data.phase === "coverage" || data.phase === "loading" || (data.phase === "ready" && ready.length < seq.length);
+  const canPlay = n > 1 && view.mode !== "stack" && !processing;
 
   // Playback starts once two visits are ready (PRD §9.3).
   useEffect(() => {
@@ -215,20 +218,31 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
         {e.code !== "no_coverage" && <button className="btn" onClick={() => setRetry((r) => r + 1)}>Try again</button>}
       </div>
     );
-  } else if (!n && (data.phase === "coverage" || data.phase === "loading" || data.phase === "ready")) {
+  } else if (data.phase === "ready" && seq.length === 0) {
+    status = (
+      <div className="state-msg" role="status">
+        <h3>No frames for this band</h3>
+        <p>SPHEREx has no images of this spot in this band yet. Try another band or “all”.</p>
+      </div>
+    );
+  } else if (processing) {
     const frac = data.total ? data.done / data.total : 0;
     const elapsed = (performance.now() - data.startedAt) / 1000;
-    const eta = data.done > 3 ? Math.round((elapsed / data.done) * (data.total - data.done)) : null;
+    const eta = data.done > 3 && data.done < data.total ? Math.round((elapsed / data.done) * (data.total - data.done)) : null;
     status = (
-      <div className="state-msg" role="status" aria-live="polite">
-        <h3>{data.phase === "coverage" ? "Asking the NASA archive what SPHEREx saw here…" : data.phase === "ready" && seq.length === 0 ? "No frames for this band" : "Building the flipbook"}</h3>
+      <div className={n ? "state-msg processing over" : "state-msg processing"} role="status" aria-live="polite">
+        <h3>
+          {data.phase === "coverage" ? "Asking the NASA archive what SPHEREx saw here" : "Processing"}
+          <span className="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span>
+        </h3>
         {data.phase === "loading" && (
           <>
             <p className="mono">Fetching {data.done} / {data.total} exposures{eta !== null ? ` · about ${eta < 90 ? `${eta} s` : `${Math.round(eta / 60)} min`} left` : ""}</p>
             <div className="progress"><div style={{ width: `${frac * 100}%` }} /></div>
-            <p className="note">Frames appear as each visit finishes. Playback starts with two.</p>
           </>
         )}
+        {data.phase === "ready" && <p className="mono">Preparing {ready.length} / {seq.length} frames</p>}
+        <p className="note">Playback starts when every visit is in.</p>
       </div>
     );
   }
@@ -247,6 +261,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       hover={hover}
       onHover={setHover}
       onPick={setHover}
+      busy={processing && n > 0}
       label={label}
       badges={badges}
     >
@@ -315,7 +330,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
         {controls}
       </nav>
       <div className="stage">
-        <Timeline
+        {!showPlots && <Timeline
           compact
           epochs={data.epochs}
           loaded={loadedEpochs}
@@ -328,7 +343,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
             if (i >= 0) setIdx(i);
           }}
           onRef={(ep) => update({ epoch: ep })}
-        />
+        />}
         {showPlots ? (
           <div className="plots-wrap">
             <Plots photometry={data.photometry} band={view.band} isMira={fieldTarget?.id === "r-dra"} epochs={data.epochs}

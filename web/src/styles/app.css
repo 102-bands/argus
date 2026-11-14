@@ -87,6 +87,15 @@ button, input, select { font: inherit; color: inherit; }
 
 .state-msg { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 24px; color: var(--fg-2); }
 .state-msg h3 { margin: 0; color: var(--fg); font-weight: 500; }
+/* Processing: the frames so far show through, blurred, until every visit is in. */
+.viewer canvas { transition: filter 0.4s; }
+.viewer.busy canvas { filter: blur(4px) brightness(0.55); }
+.state-msg.over { background: rgba(11, 11, 15, 0.35); }
+.state-msg .dots { display: inline-flex; width: 1.2em; }
+.state-msg .dots i { font-style: normal; animation: dot 1.2s infinite; opacity: 0.2; }
+.state-msg .dots i:nth-child(2) { animation-delay: 0.2s; }
+.state-msg .dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot { 0%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
 .progress { width: 60%; height: 2px; background: var(--line); }
 .progress > div { height: 100%; background: var(--cyan); transition: width 0.3s; }
 
@@ -125,6 +134,8 @@ button, input, select { font: inherit; color: inherit; }
 .chart { width: 100%; height: auto; display: block; }
 .chart text { font-family: var(--font-mono); font-size: 9px; fill: var(--fg-3); }
 .chart .axis { stroke: var(--line-2); }
+.chart text.axis-title { font-family: var(--font-sans); font-size: 10px; fill: var(--fg-2); }
+.plots .chart text.axis-title { font-size: 14px; }
 .chart .grid { stroke: var(--line); }
 .tabs { display: flex; gap: 0; margin-bottom: 10px; }
 .det-key { display: flex; flex-wrap: wrap; gap: 4px 10px; font-family: var(--font-mono); font-size: 10px; margin-top: 6px; color: var(--fg-2); }
@@ -132,10 +143,11 @@ button, input, select { font: inherit; color: inherit; }
 
 /* Plots view (replaces the image in the centre) */
 .plots-wrap { padding: 16px; }
-.plots { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px 28px; align-content: start; }
+.plots { display: grid; grid-template-columns: 1fr; gap: 20px 28px; align-content: start; }
+.plots.two-up { grid-template-columns: 1fr 1fr; }
 .plot-title { font-weight: 500; font-size: 15px; margin: 0 0 2px; }
 .plot .note { margin: 0 0 10px; max-width: 60ch; }
-.plots .chart text { font-size: 11px; }
+.plots .chart text { font-size: 12px; }
 .plots .det-key { font-size: 11px; }
 
 /* Sky context map */
@@ -226,4 +238,5 @@ button, input, select { font: inherit; color: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
+  .state-msg .dots i { opacity: 1; }
 }

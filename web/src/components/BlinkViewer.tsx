@@ -22,6 +22,8 @@ interface Props {
   hover: Hover | null;
   onHover: (h: Hover | null) => void;
   onPick: (h: Hover) => void;
+  /** Frames are still arriving: blur the image under the Processing overlay. */
+  busy?: boolean;
   label: React.ReactNode;
   badges: React.ReactNode;
   children?: React.ReactNode;
@@ -179,7 +181,7 @@ export function BlinkViewer(p: Props) {
         <div className="frame-label" aria-hidden="true">{p.label}</div>
         <div className="badges">{p.badges}</div>
       </div>
-      <div className="viewer">
+      <div className={p.busy ? "viewer busy" : "viewer"}>
         <canvas ref={base} role="img" aria-label="SPHEREx image of the selected field" />
         <canvas
           ref={over}

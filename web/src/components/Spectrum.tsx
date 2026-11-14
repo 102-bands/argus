@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Epoch, PhotPoint } from "../lib/api";
 import { track } from "../lib/analytics";
+import { AxisTitles } from "./LightCurve";
 
 // Chart size in viewBox units; the Plots view passes a larger size so labels stay small.
 const DEFAULT_W = 300;
@@ -20,8 +21,8 @@ interface Props {
 export function Spectrum({ points, epochs, initialEpoch, width = DEFAULT_W, height = DEFAULT_H }: Props) {
   const W = width;
   const H = height;
-  // Wider charts (Plots view) use bigger labels, so they need a wider left margin for the flux axis.
-  const M = width > 400 ? { l: 56, r: 10, t: 10, b: 28 } : { l: 40, r: 8, t: 8, b: 24 };
+  // Room for tick labels plus an axis title on each axis.
+  const M = { l: 82, r: 24, t: 10, b: 50 };
   const withData = useMemo(() => epochs.filter((e) => points.some((p) => p.epoch === e.id && p.flux_ujy > 0)), [epochs, points]);
   const [epoch, setEpoch] = useState<number | null>(initialEpoch);
   useEffect(() => {
@@ -57,7 +58,7 @@ export function Spectrum({ points, epochs, initialEpoch, width = DEFAULT_W, heig
       <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img"
            aria-label={`Spectrum of the centre source, ${pts.length} exposures, ${bins.length} bins`}>
         {[1, 2, 3, 4, 5].map((l) => (
-          <text key={l} x={sx(l)} y={H - 8} textAnchor="middle">{l} µm</text>
+          <text key={l} x={sx(l)} y={H - M.b + 16} textAnchor="middle">{l} µm</text>
         ))}
         {logTicks(y0, y1).map((t) => (
           <g key={t}>
@@ -67,6 +68,7 @@ export function Spectrum({ points, epochs, initialEpoch, width = DEFAULT_W, heig
         ))}
         <line className="axis" x1={M.l} x2={M.l} y1={M.t} y2={H - M.b} />
         <line className="axis" x1={M.l} x2={W - M.r} y1={H - M.b} y2={H - M.b} />
+        <AxisTitles W={W} H={H} M={M} x="Wavelength (µm, log scale)" y="Brightness (log scale)" />
         {pts.map((p, i) => (
           <circle key={i} cx={sx(p.lambda_um)} cy={sy(Math.log10(p.flux_ujy))} r={1.6}
                   fill={p.saturated ? "none" : "var(--fg-3)"} stroke="var(--fg-3)" />
