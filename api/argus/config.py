@@ -24,7 +24,9 @@ class Settings(BaseSettings):
     max_running_jobs: int = 2
     max_queued_jobs: int = 20
     max_exposures_per_job: int = 400
-    job_timeout_s: int = 600
+    job_timeout_s: int = 600  # no progress for this long ends a job; slow but moving jobs continue
+    job_max_s: int = 3600
+    abandon_grace_s: int = 30  # cancel a job this long after its last viewer leaves
     rss_limit_mb: int = 1500
     allowed_origins: str = "http://localhost:5173"
 

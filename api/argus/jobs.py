@@ -45,6 +45,11 @@ class Job:
     status: str = "queued"
     created: float = field(default_factory=time.time)
     changed: asyncio.Event = field(default_factory=asyncio.Event)
+    progressed: float = field(default_factory=time.monotonic)
+    created_mono: float = field(default_factory=time.monotonic)
+    listeners: int = 0
+    cancelled: bool = False
+    task: asyncio.Task | None = None
 
     def emit(self, event: str, data: dict) -> None:
         self.events.append({"event": event, "data": json.dumps(data, separators=(",", ":"))})
@@ -117,22 +122,64 @@ class JobRunner:
         job = Job(id=str(uuid.uuid4()), key=key, spec=spec, rows=rows, epoch_ids=epoch_ids)
         self.jobs[job.id] = job
         self.by_key[key] = job
-        asyncio.get_running_loop().create_task(self._run(job))
+        job.task = asyncio.get_running_loop().create_task(self._run(job))
         return job
 
+    def attach(self, job: Job) -> None:
+        job.listeners += 1
+
+    def detach(self, job: Job) -> None:
+        """Cancel a job nobody watches any more, after a grace period (page reloads, StrictMode remounts).
+
+        Without this, clicking through fields left every old job running, they shared the download
+        slots, and the newest one hit the timeout.
+        """
+        job.listeners -= 1
+        if job.listeners > 0 or job.status not in ("queued", "running"):
+            return
+
+        async def later():
+            await asyncio.sleep(self.settings.abandon_grace_s)
+            if job.listeners == 0 and job.status in ("queued", "running"):
+                log.info("job %s abandoned; cancelling", job.id)
+                job.cancelled = True
+                if job.task:
+                    job.task.cancel()
+
+        asyncio.get_running_loop().create_task(later())
+
     async def _run(self, job: Job) -> None:
-        async with self.running:
-            job.status = "running"
-            try:
-                await asyncio.wait_for(self._work(job), timeout=self.settings.job_timeout_s)
+        try:
+            async with self.running:
+                job.status = "running"
+                job.progressed = time.monotonic()
+                work = asyncio.ensure_future(self._work(job))
+                try:
+                    # Time out on a stall, not on total time: a busy archive makes jobs slow, not stuck.
+                    while not work.done():
+                        await asyncio.wait({work}, timeout=5)
+                        now = time.monotonic()
+                        if not work.done() and (now - job.progressed > self.settings.job_timeout_s
+                                                or now - job.created_mono > self.settings.job_max_s):
+                            work.cancel()
+                            raise asyncio.TimeoutError
+                    work.result()
+                finally:
+                    if not work.done():
+                        work.cancel()
                 job.status = "done"
-            except asyncio.TimeoutError:
-                job.status = "error"
-                job.emit("error", {"code": "timeout", "detail": "The job took too long."})
-            except Exception as e:  # noqa: BLE001 - reported to the client, logged here
-                log.exception("job %s failed", job.id)
-                job.status = "error"
-                job.emit("error", {"code": "pipeline", "detail": type(e).__name__})
+        except asyncio.CancelledError:
+            job.cancelled = True
+            job.status = "error"
+            job.emit("error", {"code": "cancelled", "detail": "Nobody was watching this job, so it stopped."})
+        except asyncio.TimeoutError:
+            job.cancelled = True
+            job.status = "error"
+            job.emit("error", {"code": "timeout", "detail": "The archive stopped answering. Try again in a minute."})
+        except Exception as e:  # noqa: BLE001 - reported to the client, logged here
+            log.exception("job %s failed", job.id)
+            job.status = "error"
+            job.emit("error", {"code": "pipeline", "detail": type(e).__name__})
 
     async def _work(self, job: Job) -> None:
         spec, s = job.spec, self.settings
@@ -148,6 +195,8 @@ class JobRunner:
         photometry: list[dict] = []
 
         def work(exp: Exposure):
+            if job.cancelled:
+                return None
             cut = self.source.fetch(exp, spec.ra, spec.dec, half)
             return None if cut is None else calibrate_and_align(cut, grid, n)
 
@@ -163,6 +212,7 @@ class JobRunner:
                     log.warning("exposure %s failed: %s", exp.obs_id, e)
                     aligned = None
                 done += 1
+                job.progressed = time.monotonic()
                 if done % 5 == 0 or done == total:
                     job.emit("progress", {"done": done, "total": total})
                 if aligned is None:
