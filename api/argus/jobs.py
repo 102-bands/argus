@@ -47,9 +47,8 @@ class Job:
     changed: asyncio.Event = field(default_factory=asyncio.Event)
     progressed: float = field(default_factory=time.monotonic)
     created_mono: float = field(default_factory=time.monotonic)
-    listeners: int = 0
+    watched: float = field(default_factory=time.monotonic)  # last time an SSE stream was open on it
     cancelled: bool = False
-    task: asyncio.Task | None = None
 
     def emit(self, event: str, data: dict) -> None:
         self.events.append({"event": event, "data": json.dumps(data, separators=(",", ":"))})
@@ -122,64 +121,61 @@ class JobRunner:
         job = Job(id=str(uuid.uuid4()), key=key, spec=spec, rows=rows, epoch_ids=epoch_ids)
         self.jobs[job.id] = job
         self.by_key[key] = job
-        job.task = asyncio.get_running_loop().create_task(self._run(job))
+        asyncio.get_running_loop().create_task(self._run(job))
         return job
 
-    def attach(self, job: Job) -> None:
-        job.listeners += 1
+    def _abandoned(self, job: Job) -> bool:
+        """True when no SSE stream has been open on the job for the grace period.
 
-    def detach(self, job: Job) -> None:
-        """Cancel a job nobody watches any more, after a grace period (page reloads, StrictMode remounts).
-
-        Without this, clicking through fields left every old job running, they shared the download
-        slots, and the newest one hit the timeout.
+        Without this, clicking through fields left every old job running; they shared the download
+        slots and the newest one hit the timeout. Streams refresh `watched` every few seconds; a
+        timestamp is used because the SSE library does not reliably close generators on disconnect.
         """
-        job.listeners -= 1
-        if job.listeners > 0 or job.status not in ("queued", "running"):
-            return
+        grace = self.settings.abandon_grace_s
+        return grace > 0 and time.monotonic() - job.watched > grace
 
-        async def later():
-            await asyncio.sleep(self.settings.abandon_grace_s)
-            if job.listeners == 0 and job.status in ("queued", "running"):
-                log.info("job %s abandoned; cancelling", job.id)
-                job.cancelled = True
-                if job.task:
-                    job.task.cancel()
-
-        asyncio.get_running_loop().create_task(later())
+    def _stop(self, job: Job, code: str, detail: str) -> None:
+        job.cancelled = True  # queued exposures in the thread pool skip their fetch
+        job.status = "error"
+        job.emit("error", {"code": code, "detail": detail})
 
     async def _run(self, job: Job) -> None:
+        # Wait for a slot, but give up on the job if its viewer leaves while it is queued.
+        while True:
+            if self._abandoned(job):
+                log.info("job %s abandoned while queued", job.id)
+                return self._stop(job, "cancelled", "Nobody was watching this job, so it stopped.")
+            try:
+                await asyncio.wait_for(self.running.acquire(), timeout=5)
+                break
+            except asyncio.TimeoutError:
+                pass
         try:
-            async with self.running:
-                job.status = "running"
-                job.progressed = time.monotonic()
-                work = asyncio.ensure_future(self._work(job))
-                try:
-                    # Time out on a stall, not on total time: a busy archive makes jobs slow, not stuck.
-                    while not work.done():
-                        await asyncio.wait({work}, timeout=5)
-                        now = time.monotonic()
-                        if not work.done() and (now - job.progressed > self.settings.job_timeout_s
-                                                or now - job.created_mono > self.settings.job_max_s):
-                            work.cancel()
-                            raise asyncio.TimeoutError
-                    work.result()
-                finally:
-                    if not work.done():
-                        work.cancel()
+            job.status = "running"
+            job.progressed = time.monotonic()
+            work = asyncio.ensure_future(self._work(job))
+            try:
+                # Time out on a stall, not on total time: a busy archive makes jobs slow, not stuck.
+                while not work.done():
+                    await asyncio.wait({work}, timeout=5)
+                    if work.done():
+                        break
+                    now = time.monotonic()
+                    if self._abandoned(job):
+                        log.info("job %s abandoned; cancelling", job.id)
+                        return self._stop(job, "cancelled", "Nobody was watching this job, so it stopped.")
+                    if now - job.progressed > self.settings.job_timeout_s or now - job.created_mono > self.settings.job_max_s:
+                        return self._stop(job, "timeout", "The archive stopped answering. Try again in a minute.")
+                work.result()
                 job.status = "done"
-        except asyncio.CancelledError:
-            job.cancelled = True
-            job.status = "error"
-            job.emit("error", {"code": "cancelled", "detail": "Nobody was watching this job, so it stopped."})
-        except asyncio.TimeoutError:
-            job.cancelled = True
-            job.status = "error"
-            job.emit("error", {"code": "timeout", "detail": "The archive stopped answering. Try again in a minute."})
+            finally:
+                if not work.done():
+                    work.cancel()
         except Exception as e:  # noqa: BLE001 - reported to the client, logged here
             log.exception("job %s failed", job.id)
-            job.status = "error"
-            job.emit("error", {"code": "pipeline", "detail": type(e).__name__})
+            self._stop(job, "pipeline", type(e).__name__)
+        finally:
+            self.running.release()
 
     async def _work(self, job: Job) -> None:
         spec, s = job.spec, self.settings

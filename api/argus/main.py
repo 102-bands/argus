@@ -174,26 +174,21 @@ def create_app() -> FastAPI:
         if job is None:
             return problem(404, "Not found", "The job finished more than 30 minutes ago or never existed.")
 
-        runner = request.app.state.jobs
-
         async def stream():
             i = 0
-            runner.attach(job)
-            try:
-                while True:
-                    while i < len(job.events):
-                        yield job.events[i]
-                        i += 1
-                    if job.status in ("done", "error"):
-                        return
-                    if await request.is_disconnected():
-                        return
-                    try:
-                        await asyncio.wait_for(job.changed.wait(), timeout=5)
-                    except asyncio.TimeoutError:
-                        pass
-            finally:
-                runner.detach(job)
+            while True:
+                job.watched = time.monotonic()
+                while i < len(job.events):
+                    yield job.events[i]
+                    i += 1
+                if job.status in ("done", "error"):
+                    return
+                if await request.is_disconnected():
+                    return
+                try:
+                    await asyncio.wait_for(job.changed.wait(), timeout=5)
+                except asyncio.TimeoutError:
+                    pass
 
         return EventSourceResponse(stream(), ping=15, headers={"Cache-Control": "no-store"})
 
