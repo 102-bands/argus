@@ -26,9 +26,19 @@ from argus.sia import Exposure  # noqa: E402
 def run(src: S3Source, rows, ra, dec, half, threads):
     t = time.time()
     src.requests = 0
+    def one(e):
+        try:
+            return src.fetch(e, ra, dec, half)
+        except Exception as err:  # noqa: BLE001 - count it and keep timing the rest
+            print(f"  failed {e.obs_id}: {type(err).__name__}", flush=True)
+            return FAILED
+
     with ThreadPoolExecutor(threads) as pool:
-        cuts = list(pool.map(lambda e: src.fetch(e, ra, dec, half), rows))
+        cuts = list(pool.map(one, rows))
     return cuts, time.time() - t, src.requests
+
+
+FAILED = object()
 
 
 def time_job(ra: float, dec: float, size: float, api: str = "http://localhost:8000/api") -> int:
@@ -84,15 +94,16 @@ def main() -> int:
         src = S3Source(threading.BoundedSemaphore(a.threads), prefetch=mode == "prefetch")
         cuts, secs, reqs = run(src, rows, ra, dec, half, a.threads)
         results[mode] = cuts
-        ok = sum(c is not None for c in cuts)
+        ok = sum(c is not None and c is not FAILED for c in cuts)
+        bad = sum(c is FAILED for c in cuts)
         print(f"{mode:9s} {secs:6.1f} s total  {secs * a.threads / len(rows):5.1f} s/exposure/thread  "
-              f"{f'{reqs / len(rows):4.1f}' if mode == 'prefetch' else ' n/a'} requests/exposure  ({ok} cutouts)")
+              f"{f'{reqs / len(rows):4.1f}' if mode == 'prefetch' else ' n/a'} requests/exposure  ({ok} cutouts, {bad} failed)")
     if len(results) == 2:
         same = all(
             (p is None and q is None) or (p is not None and q is not None and all(
                 np.array_equal(getattr(p, k), getattr(q, k), equal_nan=k != "flags")
                 for k in ("image", "flags", "variance", "zodi")) and p.lam_um == q.lam_um)
-            for p, q in zip(results["plain"], results["prefetch"]))
+            for p, q in zip(results["plain"], results["prefetch"]) if p is not FAILED and q is not FAILED)
         print("arrays identical:", same)
         return 0 if same else 1
     return 0

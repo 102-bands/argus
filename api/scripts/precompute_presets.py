@@ -71,6 +71,7 @@ async def main(ids: list[str]) -> None:
     s = get_settings()
     s.job_timeout_s = s.job_max_s = 3600  # offline batch: no web limits
     s.abandon_grace_s = 0  # no SSE viewer here; never cancel
+    s.max_exposures_per_job = 400  # presets keep every exposure; the web cap (120) is for speed
     cache = DiskCache(s.cache_dir, int(s.cache_max_gb * 1024**3))
     async with httpx.AsyncClient(follow_redirects=False) as http:
         coverage = CoverageService(cache, http)

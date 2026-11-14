@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 import brotli
+from s3fs.core import _error_wrapper
 import fsspec.asyn
 import httpx
 import numpy as np
@@ -199,8 +200,10 @@ class S3Source:
     def __init__(self, sem: threading.BoundedSemaphore, retries: int = 3, prefetch: bool = True):
         import s3fs
 
-        # The aiobotocore default pool (10 connections) would cap the parallel range reads.
-        self.fs = s3fs.S3FileSystem(anon=True, config_kwargs={"max_pool_connections": 128})
+        # The aiobotocore default pool (10 connections) would cap the parallel range reads. Each read
+        # is a few hundred KB at most, so a 10 s silence means a stalled transfer: retry, don't wait 60 s.
+        self.fs = s3fs.S3FileSystem(anon=True, config_kwargs={
+            "max_pool_connections": 128, "connect_timeout": 10, "read_timeout": 10})
         self.sem = sem
         self.retries = retries
         self.prefetch = prefetch
@@ -223,12 +226,17 @@ class S3Source:
     async def _get_many(self, path: str, ranges: list[str]) -> list[tuple[bytes, str]]:
         bucket, key, _ = self.fs.split_path(path)
 
-        async def one(rng: str) -> tuple[bytes, str]:
+        async def call(rng: str) -> tuple[bytes, str]:
             resp = await self.fs._call_s3("get_object", Bucket=bucket, Key=key, Range=rng)
             try:
                 return await resp["Body"].read(), resp.get("ContentRange", "")
             finally:
                 resp["Body"].close()
+
+        async def one(rng: str) -> tuple[bytes, str]:
+            # Retry the body read too, as s3fs's own _cat_file does: from slow links a transfer can
+            # stall after the first byte (measured 2026-11-14: 22-31 s, then a reset).
+            return await _error_wrapper(call, args=(rng,), retries=self.fs.retries)
 
         self.requests += len(ranges)
         return await asyncio.gather(*(one(r) for r in ranges))
