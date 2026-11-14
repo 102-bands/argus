@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
     app.state.cache = cache
     app.state.http = client
     app.state.coverage = CoverageService(cache, client)
-    app.state.jobs = JobRunner(s, cache, make_source(s.pixel_source, s.max_concurrent_fetch))
+    app.state.jobs = JobRunner(s, cache, make_source(s.pixel_source, s.max_concurrent_fetch, s.s3_prefetch))
     yield
     await client.aclose()
     app.state.jobs.pool.shutdown(wait=False, cancel_futures=True)

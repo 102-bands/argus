@@ -1,6 +1,8 @@
 """SPHEREx coverage via IRSA SIA2 (PRD §5.1, §6.2 step 1)."""
+import asyncio
 import io
 import json
+import random
 import time
 import warnings
 from dataclasses import asdict, dataclass
@@ -13,6 +15,7 @@ from .security import check_outbound
 
 SIA_URL = "https://irsa.ipac.caltech.edu/SIA"
 SIA_TTL_S = 24 * 3600
+SIA_BACKOFF_S = (1, 3, 7)
 
 
 @dataclass(frozen=True)
@@ -84,7 +87,16 @@ class CoverageService:
                 return [Exposure(**e) for e in payload["rows"]]
         params = [("POS", f"CIRCLE {ra:.6f} {dec:.6f} 0.001"), ("RESPONSEFORMAT", "VOTABLE")]
         params += [("COLLECTION", c) for c in collections]
-        r = await self.client.get(SIA_URL, params=params, timeout=httpx.Timeout(120, connect=30))
+        # IRSA answers 502/503, times out or drops connections often enough (2026-11-14) to retry.
+        for delay in (*SIA_BACKOFF_S, None):
+            try:
+                r = await self.client.get(SIA_URL, params=params, timeout=httpx.Timeout(120, connect=30))
+                if r.status_code not in (502, 503, 504) or delay is None:
+                    break
+            except httpx.TransportError:  # timeouts, refused or reset connections
+                if delay is None:
+                    raise
+            await asyncio.sleep(delay * (0.75 + 0.5 * random.random()))
         r.raise_for_status()
         rows = parse_votable(r.content)
         self.cache.put("sia", key, json.dumps({"at": time.time(), "rows": [asdict(e) for e in rows]}).encode())

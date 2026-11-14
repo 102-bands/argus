@@ -74,7 +74,7 @@ async def main(ids: list[str]) -> None:
     cache = DiskCache(s.cache_dir, int(s.cache_max_gb * 1024**3))
     async with httpx.AsyncClient(follow_redirects=False) as http:
         coverage = CoverageService(cache, http)
-        runner = JobRunner(s, cache, make_source(s.pixel_source, s.max_concurrent_fetch))
+        runner = JobRunner(s, cache, make_source(s.pixel_source, s.max_concurrent_fetch, s.s3_prefetch))
         for tid in ids:
             await build(tid, runner, coverage, cache, http)
         index = [TARGETS[i].public() for i in TARGETS if (OUT / i / "manifest.json").exists()]

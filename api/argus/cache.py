@@ -4,6 +4,8 @@ import threading
 from collections import OrderedDict
 from pathlib import Path
 
+EVICT_EVERY = 50
+
 
 class RamLRU:
     def __init__(self, max_bytes: int):
@@ -44,15 +46,16 @@ class DiskCache:
         self.max_bytes = max_bytes
         self.ram = ram
         self._lock = threading.Lock()
+        self._puts = 0
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _path(self, ns: str, key: str, pinned: bool = False) -> Path:
         base = self.root / "pinned" if pinned else self.root
         return base / ns / key[:2] / key
 
-    def get(self, ns: str, key: str) -> bytes | None:
+    def get(self, ns: str, key: str, ram: bool = True) -> bytes | None:
         ram_key = f"{ns}/{key}"
-        if self.ram and (v := self.ram.get(ram_key)) is not None:
+        if ram and self.ram and (v := self.ram.get(ram_key)) is not None:
             return v
         for pinned in (True, False):
             p = self._path(ns, key, pinned)
@@ -65,21 +68,26 @@ class DiskCache:
                     os.utime(p)
                 except OSError:
                     pass
-            if self.ram:
+            if ram and self.ram:
                 self.ram.put(ram_key, data)
             return data
         return None
 
-    def put(self, ns: str, key: str, data: bytes, pinned: bool = False) -> None:
+    def put(self, ns: str, key: str, data: bytes, pinned: bool = False, ram: bool = True) -> None:
         p = self._path(ns, key, pinned)
         p.parent.mkdir(parents=True, exist_ok=True)
-        tmp = p.with_suffix(".tmp")
+        tmp = p.with_suffix(f".{threading.get_ident()}.tmp")
         tmp.write_bytes(data)
         os.replace(tmp, p)
-        if self.ram:
+        if ram and self.ram:
             self.ram.put(f"{ns}/{key}", data)
         if not pinned:
-            self.evict()
+            # evict() walks the whole cache; with a cutout per exposure that is too often.
+            with self._lock:
+                self._puts += 1
+                due = self._puts % EVICT_EVERY == 0
+            if due:
+                self.evict()
 
     def evict(self) -> None:
         with self._lock:

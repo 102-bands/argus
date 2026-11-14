@@ -4,7 +4,7 @@ import json
 import logging
 import time
 import uuid
-from collections import defaultdict
+from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
@@ -13,11 +13,12 @@ from .cache import DiskCache
 from .config import Settings
 from .pipeline import (StackAccumulator, calibrate_and_align, compress, content_key, cutout_half_px, encode_frame,
                        grid_header, make_grid)
-from .pixels import PixelSource
+from .pixels import Cutout, PixelSource, crop_cutout, decode_cutout, encode_cutout
 from .sia import Exposure, latest_release, sample_evenly
 
 log = logging.getLogger("argus.jobs")
 JOB_KEEP_S = 30 * 60
+FIELD_SIZES = (1, 2, 3, 5, 8, 10, 15)  # arcmin; the choices in web/src/components/Controls.tsx
 
 
 class Busy(Exception):
@@ -190,39 +191,73 @@ class JobRunner:
         frames: list[dict] = []
         photometry: list[dict] = []
 
-        def work(exp: Exposure):
+        # Any cached cutout of this exposure at the same centre and at least this size can be cropped.
+        halves = sorted({half} | {cutout_half_px(make_grid(spec.ra, spec.dec, sz)[1])
+                                  for sz in FIELD_SIZES if sz >= spec.size_arcmin})
+
+        def cut_key(exp: Exposure, h: int) -> str:
+            return content_key("cut", exp.obs_id, round(spec.ra, 5), round(spec.dec, 5), h)
+
+        def get_cutout(exp: Exposure) -> Cutout | None:
+            for h in halves:
+                data = self.cache.get("cut", cut_key(exp, h), ram=False)
+                cut = data and crop_cutout(decode_cutout(data), spec.ra, spec.dec, half)
+                if cut:
+                    return cut
             if job.cancelled:
                 return None
             cut = self.source.fetch(exp, spec.ra, spec.dec, half)
+            if cut is not None and cut.header is not None:
+                self.cache.put("cut", cut_key(exp, half), encode_cutout(cut), ram=False)
+            return cut
+
+        def work(exp: Exposure):
+            if job.cancelled:
+                return None
+            cut = get_cutout(exp)
             return None if cut is None else calibrate_and_align(cut, grid, n)
 
-        for ep in epochs:
-            idx = [i for i, e in enumerate(job.epoch_ids) if e == ep["id"]]
-            accs: dict[tuple[str, str], StackAccumulator] = {}
-            futures = [loop.run_in_executor(self.pool, work, job.rows[i]) for i in idx]
-            for i, fut in zip(idx, futures):
-                exp = job.rows[i]
-                try:
-                    aligned = await fut
-                except Exception as e:  # noqa: BLE001 - one bad exposure must not sink the job
-                    log.warning("exposure %s failed: %s", exp.obs_id, e)
-                    aligned = None
-                done += 1
-                job.progressed = time.monotonic()
-                if done % 5 == 0 or done == total:
-                    job.emit("progress", {"done": done, "total": total})
-                if aligned is None:
-                    continue
-                if "broadband" in spec.products:
-                    accs.setdefault(("broadband", "all"), StackAccumulator(n)).add(aligned, exp.t_mid)
-                if "per_detector" in spec.products:
-                    accs.setdefault(("per_detector", exp.detector), StackAccumulator(n)).add(aligned, exp.t_mid)
-                if aligned.flux_ujy == aligned.flux_ujy:  # not NaN
-                    photometry.append({"mjd": exp.t_mid, "detector": exp.detector, "lambda_um": round(aligned.lam_um, 4),
-                                       "flux_ujy": aligned.flux_ujy, "err": aligned.err_ujy,
-                                       "saturated": aligned.saturated, "epoch": ep["id"]})
-            for (product, det), acc in sorted(accs.items()):
-                frames.append(self._emit_frame(job, spec, grid, n, ep, product, det, acc, release))
+        # Submit everything at once, in epoch order, so the pool never idles on one epoch's slowest
+        # exposure; an epoch's frames go out as soon as its last exposure is in.
+        by_epoch = {ep["id"]: ep for ep in epochs}
+        remaining = Counter(job.epoch_ids)
+        accs: dict[int, dict[tuple[str, str], StackAccumulator]] = defaultdict(dict)
+        order = sorted(range(total), key=lambda i: (job.epoch_ids[i], job.rows[i].t_mid))
+        futs = {loop.run_in_executor(self.pool, work, job.rows[i]): i for i in order}
+        pending = set(futs)
+        try:
+            while pending:
+                finished, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                for fut in sorted(finished, key=futs.__getitem__):
+                    i = futs[fut]
+                    exp, e = job.rows[i], job.epoch_ids[i]
+                    try:
+                        aligned = fut.result()
+                    except Exception as err:  # noqa: BLE001 - one bad exposure must not sink the job
+                        log.warning("exposure %s failed: %s", exp.obs_id, err)
+                        aligned = None
+                    done += 1
+                    job.progressed = time.monotonic()
+                    if done % 5 == 0 or done == total:
+                        job.emit("progress", {"done": done, "total": total})
+                    if aligned is not None:
+                        acc = accs[e]
+                        if "broadband" in spec.products:
+                            acc.setdefault(("broadband", "all"), StackAccumulator(n)).add(aligned, exp.t_mid)
+                        if "per_detector" in spec.products:
+                            acc.setdefault(("per_detector", exp.detector), StackAccumulator(n)).add(aligned, exp.t_mid)
+                        if aligned.flux_ujy == aligned.flux_ujy:  # not NaN
+                            photometry.append({"mjd": exp.t_mid, "detector": exp.detector,
+                                               "lambda_um": round(aligned.lam_um, 4), "flux_ujy": aligned.flux_ujy,
+                                               "err": aligned.err_ujy, "saturated": aligned.saturated, "epoch": e})
+                    remaining[e] -= 1
+                    if remaining[e] == 0:
+                        for (product, det), acc in sorted(accs.pop(e, {}).items()):
+                            frames.append(self._emit_frame(job, spec, grid, n, by_epoch[e], product, det, acc, release))
+        finally:
+            for fut in pending:
+                fut.cancel()
+        frames.sort(key=lambda f: (f["epoch"], f["product"], f["detector"]))
 
         manifest = {
             "key": job.key, "ra": spec.ra, "dec": spec.dec, "size_arcmin": spec.size_arcmin, "n": n,

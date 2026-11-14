@@ -16,14 +16,15 @@ class Settings(BaseSettings):
 
     collections: str = "spherex_dr1,spherex_qr3"
     pixel_source: Literal["s3", "cutout"] = "s3"
-    pipeline_version: int = 1
+    s3_prefetch: bool = True  # 3 parallel rounds per exposure; false = astropy reads on demand
+    pipeline_version: int = 2
     cache_dir: Path = Path("./data")
     cache_max_gb: float = 4.0
     ram_cache_mb: int = 64
-    max_concurrent_fetch: int = 8
+    max_concurrent_fetch: int = 24  # requests mostly wait on latency, not bandwidth
     max_running_jobs: int = 2
     max_queued_jobs: int = 20
-    max_exposures_per_job: int = 400
+    max_exposures_per_job: int = 120
     job_timeout_s: int = 600  # no progress for this long ends a job; slow but moving jobs continue
     job_max_s: int = 3600
     abandon_grace_s: int = 30  # cancel a job this long after its last viewer leaves
