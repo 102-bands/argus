@@ -388,7 +388,18 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       </aside>
       {live}
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
-      {shareOpen && <ShareDialog onClose={onShareClose} />}
+      {shareOpen && field && <ShareDialog onClose={onShareClose} sources={{
+        report: worker && !processing && ready.length ? {
+          worker, name: fieldTarget?.name ?? "", notes: fieldTarget?.notes ?? "", ra: field.ra, dec: field.dec, size: field.size,
+          band: view.band, stretch: view.stretch, soft, frames: ready, epochs: data.epochs, photometry: data.photometry,
+          collections: data.collections, url: window.location.href,
+        } : null,
+        gif: worker && !processing && ready.length > 1 ? {
+          worker, frames: ready, mode: view.mode, refKey: refFrame?.key ?? null, stretch: view.stretch, soft,
+          speedMs: view.speed, name: fieldTarget?.name ?? `${field.ra.toFixed(3)}_${field.dec.toFixed(3)}`,
+          bandLabel: view.band === "all" ? "ALL" : view.band,
+        } : null,
+      }} />}
     </main>
   );
 }

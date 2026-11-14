@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
-from . import physics
+from . import memory, physics
 from .cache import DiskCache
 from .config import Settings
 from .pipeline import (StackAccumulator, calibrate_and_align, compress, content_key, cutout_half_px, encode_frame,
@@ -177,6 +177,14 @@ class JobRunner:
             self._stop(job, "pipeline", type(e).__name__)
         finally:
             self.running.release()
+            # Hand the job's cutout memory back to the OS (see memory.py) once nothing else is running.
+            if not any(j.status == "running" for j in self.jobs.values()):
+                await asyncio.get_running_loop().run_in_executor(None, memory.release)
+
+    def sweep(self) -> None:
+        """Drop finished jobs older than JOB_KEEP_S and release memory; called on a timer."""
+        self._gc()
+        memory.release()
 
     async def _work(self, job: Job) -> None:
         spec, s = job.spec, self.settings

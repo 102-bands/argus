@@ -11,10 +11,11 @@ ARG VITE_UMAMI_WEBSITE_ID=8113f1e3-a14d-40f3-9089-2afb9055dc47
 ARG VITE_SITE_DOMAIN=argus102.space
 RUN npm run build \
  && find dist -type f \( -name '*.js' -o -name '*.css' -o -name '*.html' -o -name '*.json' -o -name '*.svg' \
-      -o -name '*.bin' -o -name '*.wasm' -o -name '*.map' \) -size +1k -exec gzip -k -9 {} +
+      -o -name '*.bin' -o -name '*.wasm' -o -name '*.map' -o -name '*.ttf' \) -size +1k -exec gzip -k -9 {} +
 
 FROM python:3.12-slim
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONUTF8=1 \
+# MALLOC_ARENA_MAX=2: stop glibc keeping one memory arena per fetch thread (RSS creep; see argus/memory.py).
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONUTF8=1 MALLOC_ARENA_MAX=2 \
     UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PROJECT_ENVIRONMENT=/opt/venv
 COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /usr/local/bin/uv
 

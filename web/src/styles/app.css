@@ -170,6 +170,17 @@ button, input, select { font: inherit; color: inherit; }
 .dialog { background: var(--ink-2); border: 1px solid var(--line-2); max-width: 520px; width: 100%; padding: 20px; max-height: 90vh; overflow: auto; }
 .dialog h2 { margin-top: 0; font-weight: 500; }
 .dialog textarea, .dialog input { width: 100%; background: var(--ink); border: 1px solid var(--line-2); padding: 8px; font-family: var(--font-mono); font-size: 12px; border-radius: 0; }
+.dialog { max-width: 560px; }
+.share-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 14px; }
+.share-tabs { margin: 18px 0 12px; }
+.share-item { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--line); }
+.share-item .note { margin: 4px 0 0; font-size: 12px; }
+.share-item .btn { flex: none; }
+.note.warn { color: var(--amber); }
+.note .dots { display: inline-flex; }
+.note .dots i { font-style: normal; animation: dot 1.2s infinite; opacity: 0.2; }
+.note .dots i:nth-child(2) { animation-delay: 0.2s; }
+.note .dots i:nth-child(3) { animation-delay: 0.4s; }
 .keys { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; font-size: 13px; }
 .keys kbd { font-family: var(--font-mono); border: 1px solid var(--line-2); padding: 0 6px; }
 

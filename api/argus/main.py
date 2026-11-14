@@ -17,7 +17,7 @@ from slowapi.errors import RateLimitExceeded
 from sse_starlette.sse import EventSourceResponse
 from starlette.exceptions import HTTPException
 
-from . import __version__
+from . import __version__, memory
 from .cache import DiskCache, RamLRU
 from .config import get_settings
 from .gaia import cone_sync
@@ -54,7 +54,15 @@ async def lifespan(app: FastAPI):
     app.state.http = client
     app.state.coverage = CoverageService(cache, client)
     app.state.jobs = JobRunner(s, cache, make_source(s.pixel_source, s.max_concurrent_fetch, s.s3_prefetch))
+
+    async def sweep():
+        while True:
+            await asyncio.sleep(300)
+            app.state.jobs.sweep()
+
+    sweeper = asyncio.create_task(sweep())
     yield
+    sweeper.cancel()
     await client.aclose()
     app.state.jobs.pool.shutdown(wait=False, cancel_futures=True)
 
@@ -116,8 +124,11 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     async def health(request: Request):
         st = request.app.state.settings
+        jobs = request.app.state.jobs.jobs.values()
         return JSONResponse({"status": "ok", "version": __version__, "pixel_source": st.pixel_source,
-                             "collections": st.collection_list}, headers={"Cache-Control": "no-store"})
+                             "collections": st.collection_list, "rss_mb": memory.rss_mb(),
+                             "jobs": {"active": sum(j.status in ("queued", "running") for j in jobs), "kept": len(jobs)}},
+                            headers={"Cache-Control": "no-store"})
 
     @app.get("/api/targets")
     @limiter.limit("120/minute")
