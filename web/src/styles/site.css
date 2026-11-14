@@ -49,17 +49,43 @@
 .lede { font-size: clamp(16px, 1.4vw, 19px); line-height: 1.6; color: var(--fg-2); max-width: 54ch; margin: 0; }
 .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin: 30px 0 18px; }
 .hero-meta { font-size: 12px; color: var(--fg-3); margin: 0; }
-.hero-view { margin: 0; }
-.viewport { position: relative; border: 1px solid var(--line-2); padding: 10px; background: #000; }
-.viewport img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
-.viewport .tick { position: absolute; width: 14px; height: 14px; border-color: var(--cyan); border-style: solid; border-width: 0; }
-.tick.tl { top: -1px; left: -1px; border-top-width: 2px; border-left-width: 2px; }
-.tick.tr { top: -1px; right: -1px; border-top-width: 2px; border-right-width: 2px; }
-.tick.bl { bottom: -1px; left: -1px; border-bottom-width: 2px; border-left-width: 2px; }
-.tick.br { bottom: -1px; right: -1px; border-bottom-width: 2px; border-right-width: 2px; }
-.hero-view figcaption { font-size: 13px; color: var(--fg-3); margin-top: 12px; line-height: 1.5; }
-.hero-view .now { color: var(--cyan); }
-.hero-view .before { color: var(--magenta); }
+.hero-view { margin: 0 calc(-1 * clamp(0px, 3vw, 40px)); }
+.blackhole {
+  display: block; width: 100%; aspect-ratio: 16 / 9; background: #0b0b0f;
+  /* feather the edges: the bloom lifts the canvas background a touch above the page */
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at center, #000 62%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 50% at center, #000 62%, transparent 100%);
+}
+
+/* Planet X: how the hunt works */
+.pxa { margin: 0; }
+.pxa svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: #08080c; }
+.pxa-strip { fill: rgba(255, 255, 255, 0.03); stroke: var(--line); }
+.pxa-star { fill: rgba(255, 255, 255, 0.7); }
+.pxa-orbit { fill: none; stroke: var(--line-2); stroke-dasharray: 3 4; }
+.pxa-sun { fill: var(--amber); }
+.pxa-earth { fill: var(--white); }
+.pxa-planet { fill: none; stroke: var(--white); stroke-width: 1.5; }
+.pxa-visit { fill: none; stroke-width: 1.5; }
+.pxa-visit.before, .pxa-tick.before { stroke: var(--magenta); }
+.pxa-visit.now, .pxa-tick.now { stroke: var(--cyan); }
+.pxa-ray { stroke-width: 1; }
+.pxa-ray.before { stroke: var(--magenta); opacity: 0.55; }
+.pxa-ray.now { stroke: var(--cyan); opacity: 0.55; }
+.pxa-ray.live { stroke: rgba(255, 255, 255, 0.5); stroke-dasharray: 4 4; }
+.pxa-tick { stroke-width: 2; }
+.pxa-seen { fill: var(--white); }
+.pxa-bracket { fill: none; stroke: var(--fg-2); }
+.pxa-shift { fill: var(--white); font-family: var(--font-mono); font-size: 13px; }
+.pxa-label { fill: var(--fg-2); font-size: 11.5px; }
+.pxa-label.before { fill: var(--magenta); }
+.pxa-label.now { fill: var(--cyan); }
+.pxa-note { fill: var(--fg-3); font-size: 10.5px; font-style: italic; }
+.pxa-controls { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 13px; color: var(--fg-2); }
+.pxa-controls input { flex: 1; accent-color: var(--cyan); }
+.pxa-controls output { min-width: 7ch; text-align: right; color: var(--white); }
+.pxa figcaption { font-size: 14px; line-height: 1.6; color: var(--fg-2); margin-top: 10px; }
+.pxa figcaption b { color: var(--white); }
 
 /* Home: bands */
 .band { max-width: 1320px; margin: 0 auto; width: 100%; padding: clamp(40px, 7vh, 80px) clamp(16px, 5vw, 72px); border-top: 1px solid var(--line); }
@@ -129,21 +155,18 @@
 /* Team page */
 .page-head { max-width: 1320px; margin: 0 auto; width: 100%; padding: clamp(40px, 8vh, 88px) clamp(16px, 5vw, 72px) 24px; }
 .page-head h1 { font-size: clamp(38px, 5vw, 64px); font-weight: 500; letter-spacing: -0.02em; margin: 0 0 16px; }
-.people { max-width: 1320px; margin: 0 auto; width: 100%; padding: 16px clamp(16px, 5vw, 72px) 72px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.people { max-width: 1320px; margin: 0 auto; width: 100%; padding: 16px clamp(16px, 5vw, 72px) 28px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 .person { border: 1px solid var(--line-2); padding: 28px; background: var(--ink-2); }
-.badge-initials { width: 64px; height: 64px; display: grid; place-items: center; font-family: var(--font-mono); font-size: 22px; color: var(--cyan); border: 1px solid var(--cyan); margin-bottom: 18px; }
-.person h2 { margin: 0; font-size: 26px; font-weight: 500; }
-.person .role { color: var(--cyan); margin: 6px 0 4px; font-size: 14px; }
-.person .study { color: var(--fg-3); font-size: 13px; margin: 0 0 14px; }
+.person h2 { margin: 0 0 12px; font-size: 26px; font-weight: 500; }
 .person p { color: var(--fg-2); line-height: 1.6; }
 .person ul { padding-left: 18px; color: var(--fg-2); line-height: 1.6; font-size: 14px; }
-.person .links { display: flex; gap: 18px; }
-.person .links a { color: var(--fg); text-decoration: none; border-bottom: 1px solid var(--line-2); }
-.person .links a:hover { border-bottom-color: var(--cyan); }
+.person ul { margin-bottom: 0; }
+.team-contact { max-width: 1320px; margin: 0 auto; width: 100%; padding: 0 clamp(16px, 5vw, 72px) 72px; }
 
 /* Admin */
 .admin-page { max-width: 980px; margin: 0 auto; width: 100%; padding-bottom: 64px; }
 .admin-page .page-head { padding-left: 16px; padding-right: 16px; }
+.admin-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .admin-login { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 0 16px; }
 .admin-login input { background: var(--ink-2); border: 1px solid var(--line-2); padding: 8px 10px; color: var(--fg); }
 .admin-filter { display: block; padding: 0 16px 12px; color: var(--fg-2); font-size: 14px; }
@@ -162,6 +185,8 @@
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 .paper a { color: #0f6f86; }
+.paper a:hover { color: #0a4f60; }
+.paper strong, .paper b, .paper em, .paper h1, .paper h2, .paper h3, .paper th, .paper td, .paper dt, .paper dd { color: inherit; }
 .paper code { font-family: var(--font-mono); font-size: 0.82em; background: #ebe9e2; padding: 0 4px; }
 .p-head { text-align: center; border-bottom: 1px solid #cfccc2; padding-bottom: 26px; margin-bottom: 26px; }
 .p-venue { font-family: var(--font-sans); font-size: 12px; color: #6b6a64; margin: 0 0 18px; }

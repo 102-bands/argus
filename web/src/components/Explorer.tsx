@@ -5,6 +5,7 @@ import { parseDec, parseRa } from "../lib/physics";
 import { BANDS, readState, writeState, type Band, type Mode, type ViewState } from "../lib/urlState";
 import { useSkyData, type Field } from "../lib/useSkyData";
 import { track } from "../lib/analytics";
+import { hasBeenWelcomed } from "../lib/welcome";
 import type { WorkerIn, WorkerOut } from "../workers/frameDecoder.worker";
 import { BlinkViewer, type Hover } from "./BlinkViewer";
 import { Controls } from "./Controls";
@@ -19,7 +20,6 @@ import { HelpDialog, ShareDialog } from "./Dialogs";
 const SkyContext = lazy(() => import("./SkyContext"));
 // Welcome dialog and tour (driver.js) load only when needed.
 const WelcomeDialog = lazy(() => import("./Tour").then((m) => ({ default: m.WelcomeDialog })));
-const welcomed = () => { try { return localStorage.getItem("argus.welcomed") === "1"; } catch { return false; } };
 
 interface Props {
   presetId: string | null;
@@ -56,7 +56,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
   const [bitmaps, setBitmaps] = useState<Map<string, ImageBitmap>>(new Map());
   const [announce, setAnnounce] = useState("");
   const [hintOpen, setHintOpen] = useState(() => !hintSeen());
-  const [welcomeOpen, setWelcomeOpen] = useState(() => !embed && !welcomed());
+  const [welcomeOpen, setWelcomeOpen] = useState(() => !embed && !hasBeenWelcomed());
   const [touring, setTouring] = useState(false);
   // Created in an effect (not useMemo) so StrictMode's mount/unmount/mount never leaves a terminated worker.
   const [worker, setWorker] = useState<Worker | null>(null);

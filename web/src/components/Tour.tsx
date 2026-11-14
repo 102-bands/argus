@@ -3,15 +3,7 @@ import { useEffect, useRef } from "react";
 import { driver, type DriveStep, type Driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import { track } from "../lib/analytics";
-
-export const WELCOMED_KEY = "argus.welcomed";
-
-export function hasBeenWelcomed(): boolean {
-  try { return localStorage.getItem(WELCOMED_KEY) === "1"; } catch { return false; }
-}
-function markWelcomed(): void {
-  try { localStorage.setItem(WELCOMED_KEY, "1"); } catch { /* private mode: show again next time */ }
-}
+import { markWelcomed } from "../lib/welcome";
 
 /** What the tour may change in the tool, so it can show diff mode and the Plots view on the right steps. */
 export interface TourControls {
@@ -73,6 +65,7 @@ function buildSteps(c: TourControls, d: () => Driver): DriveStep[] {
 
 export function startTour(c: TourControls): void {
   c.pause();
+  markWelcomed();
   track("tour_start");
   let instance: Driver | null = null;
   const steps = buildSteps(c, () => instance!);
@@ -108,8 +101,9 @@ export function startTour(c: TourControls): void {
 export function WelcomeDialog({ onTour, onSkip }: { onTour: () => void; onSkip: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    markWelcomed();
     ref.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { markWelcomed(); onSkip(); } };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onSkip(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onSkip]);
@@ -125,8 +119,8 @@ export function WelcomeDialog({ onTour, onSkip }: { onTour: () => void; onSkip: 
         </p>
         <p className="note">Would you like a short walkthrough of every part of the tool? It takes about two minutes.</p>
         <div className="welcome-actions">
-          <button className="btn btn-primary" onClick={() => { markWelcomed(); onTour(); }}>Yes, show me around</button>
-          <button className="btn" onClick={() => { markWelcomed(); track("tour_skip", { at: "welcome" }); onSkip(); }}>Skip</button>
+          <button className="btn btn-primary" onClick={onTour}>Yes, show me around</button>
+          <button className="btn" onClick={() => { track("tour_skip", { at: "welcome" }); onSkip(); }}>Skip</button>
         </div>
       </div>
     </div>

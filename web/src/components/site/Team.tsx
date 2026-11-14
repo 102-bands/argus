@@ -6,46 +6,35 @@ interface Props {
 }
 
 interface Person {
-  initials: string;
   name: string;
-  role: string;
-  study: string;
   bio: string;
   highlights: string[];
-  links: [string, string][];
 }
 
 const TEAM: Person[] = [
   {
-    initials: "UZ",
     name: "Umair Zia",
-    role: "Team lead · data pipeline and web app",
-    study: "BS Computer Science, PMAS-Arid Agriculture University Rawalpindi (expected 2029) · Islamabad, Pakistan",
-    bio: "Machine-learning engineer and researcher who likes turning big open datasets into tools people can use. "
-       + "For Argus he built the SPHEREx pipeline, the live server and the web app.",
+    bio: "Umair is a computer science student who works across machine learning, data engineering and research. He "
+       + "enjoys problems that need all three, and he likes turning large open datasets into tools people can actually "
+       + "use. On Argus he led the technical side. He shaped the pipeline that processes the SPHEREx survey data, the "
+       + "live server that runs it and the web app that lets anyone explore the results.",
     highlights: [
-      "Founder and research scientist at Xin, working on world models",
-      "AI research engineer intern at WaySel: cut LLM agent token use by 28–54%",
-      "CANOPY, a satellite deforestation pipeline (Sentinel-1/2, Gemma 4 Good Hackathon)",
-      "Kaggle Datasets Expert, top 2.2% worldwide; author of the swift-eda Python library",
+      "Kaggle Datasets Expert, ranked in the top 2.2% worldwide, with 6 silver and 10 bronze medals",
+      "AI research engineering internship: cut LLM coding agents' token use by 28–54% with no loss of accuracy, and brought response time down from 61.5s to 5.7s",
+      "CANOPY: a satellite deforestation pipeline that combines Sentinel-1 radar, Sentinel-2 imagery and a vision model, built for the Gemma 4 Good Hackathon",
     ],
-    links: [["LinkedIn", "https://www.linkedin.com/in/yuozhe"], ["GitHub", "https://github.com/UZi-Senpai"],
-            ["Kaggle", "https://www.kaggle.com/stealthtechnologies"]],
   },
   {
-    initials: "AV",
     name: "Aliki Vidouri",
-    role: "Astrophysics · science and outreach",
-    study: "Boston College, class of 2031 · Astrophysics major, Space Engineering minor",
-    bio: "Astrophysics student with hands-on space engineering projects, from satellite tracking antennas to "
-       + "drone software. For Argus she shaped the science story and how it is explained to everyone.",
+    bio: "Aliki is an astrophysics student with a background in space engineering. She's interested in how galaxies "
+       + "form and what large sky surveys can reveal about the universe. On Argus she brought the physics perspective. "
+       + "She checked that the science held up and that the data was explained accurately. She also tested the app "
+       + "and flagged anything that felt unclear.",
     highlights: [
-      "Space plasma programme at the Academy of Athens' Center for Space Research & Technology, mentored by Dr. Stamatios Krimigis and Dr. Kostas Dialynas",
-      "Harvard ASTR S-80: Planets, Moons, and the Search for Life",
-      "OrbitTrack: a ground antenna that follows satellites in real time from orbital data",
-      "Software manager at Hermis Drones; WRO Hellas robotics, 7th place nationally",
+      "Space plasma research program at the Academy of Athens' Center for Space Research & Technology, chosen for a personal mentorship track on how magnetospheres and the heliosphere interact",
+      "OrbitTrack: a 2-axis ground antenna that follows satellites in real time using orbital (TLE) data, built on a Raspberry Pi",
+      "Harvard ASTR S-80: a course on planets, moons and the search for life, with a final project on exoplanet detection and orbital dynamics",
     ],
-    links: [["LinkedIn", "https://www.linkedin.com/in/aliki-vidouri-6b346a26a/"]],
   },
 ];
 
@@ -63,16 +52,17 @@ export function Team({ navigate }: Props) {
         <div className="people">
           {TEAM.map((p) => (
             <article key={p.name} className="person">
-              <div className="badge-initials" aria-hidden="true">{p.initials}</div>
               <h2>{p.name}</h2>
-              <p className="role">{p.role}</p>
-              <p className="study">{p.study}</p>
               <p>{p.bio}</p>
               <ul>{p.highlights.map((h) => <li key={h}>{h}</li>)}</ul>
-              <p className="links">{p.links.map(([l, u]) => <a key={l} href={u} target="_blank" rel="noopener">{l} ↗</a>)}</p>
             </article>
           ))}
         </div>
+        <p className="team-contact">
+          <a className="btn btn-primary btn-lg" href="https://www.linkedin.com/in/yuozhe" target="_blank" rel="noopener">
+            Contact team lead ↗
+          </a>
+        </p>
       </main>
     </SiteLayout>
   );

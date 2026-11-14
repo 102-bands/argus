@@ -1,4 +1,4 @@
-// Contact messages for the team. Needs the ADMIN_TOKEN set on the server; kept in this tab only.
+// Contact messages for the team. Needs the ADMIN_TOKEN set on the server; the token is never stored, so a reload signs out.
 import { useCallback, useEffect, useState } from "react";
 import { API_BASE } from "../../lib/api";
 import { SiteLayout } from "./SiteLayout";
@@ -13,10 +13,8 @@ interface Message {
   handled: boolean;
 }
 
-const KEY = "argus.adminToken";
-
 export function Admin({ navigate }: { navigate: (path: string) => void }) {
-  const [token, setToken] = useState(() => { try { return sessionStorage.getItem(KEY) ?? ""; } catch { return ""; } });
+  const [token, setToken] = useState("");
   const [input, setInput] = useState("");
   const [msgs, setMsgs] = useState<Message[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +28,16 @@ export function Admin({ navigate }: { navigate: (path: string) => void }) {
       if (r.status === 404) { setError("Admin is switched off: set ADMIN_TOKEN on the server."); return; }
       if (!r.ok) { setError(`The server answered ${r.status}.`); return; }
       setMsgs(((await r.json()) as { messages: Message[] }).messages);
-      try { sessionStorage.setItem(KEY, tok); } catch { /* keep in memory only */ }
     } catch {
       setError("Can't reach the server.");
     }
   }, []);
 
   useEffect(() => { if (token) void load(token); }, [token, load]);
+  // Earlier builds kept the token for the tab; clear any copy left behind.
+  useEffect(() => { try { sessionStorage.removeItem("argus.adminToken"); } catch { /* nothing stored */ } }, []);
+
+  const logout = () => { setToken(""); setMsgs(null); setInput(""); setError(null); };
 
   const toggle = async (m: Message) => {
     const r = await fetch(`${API_BASE}/admin/messages/${m.id}/handled?handled=${!m.handled}`,
@@ -50,12 +51,17 @@ export function Admin({ navigate }: { navigate: (path: string) => void }) {
       <main id="main" className="admin-page">
         <header className="page-head">
           <h1>Messages</h1>
-          {msgs && <p className="lede">{msgs.filter((m) => !m.handled).length} open · {msgs.length} total</p>}
+          {msgs && token && (
+            <div className="admin-bar">
+              <p className="lede">{msgs.filter((m) => !m.handled).length} open · {msgs.length} total</p>
+              <button className="btn" onClick={logout}>Log out</button>
+            </div>
+          )}
         </header>
         {!token || !msgs ? (
           <form className="admin-login" onSubmit={(e) => { e.preventDefault(); setToken(input.trim()); }}>
             <label htmlFor="tok">Admin token</label>
-            <input id="tok" type="password" autoComplete="current-password" value={input} onChange={(e) => setInput(e.target.value)} />
+            <input id="tok" type="password" autoComplete="off" value={input} onChange={(e) => setInput(e.target.value)} />
             <button className="btn btn-primary" type="submit">Open</button>
             {error && <p className="err" role="alert">{error}</p>}
           </form>

@@ -1,7 +1,9 @@
 // Website home: what Argus is, live counters, how it works, the five targets, validation, Planet X, team, contact.
 import type { Target } from "../../lib/api";
 import { presetPath } from "../../lib/api";
+import { BlackHole } from "./BlackHole";
 import { ContactForm } from "./ContactForm";
+import { PlanetXAnim } from "./PlanetXAnim";
 import { SiteLayout } from "./SiteLayout";
 import { Telemetry } from "./Telemetry";
 
@@ -33,9 +35,10 @@ export function Home({ targets, navigate }: Props) {
             <p className="kicker">NASA SPHEREx · 0.75–5 µm · the whole sky every six months</p>
             <h1>Watch the infrared sky change.</h1>
             <p className="lede">
-              Argus turns NASA SPHEREx images of any patch of sky into a flipbook. Nearby stars creep, the coldest
-              brown dwarfs glow only in the far infrared, variable stars pulse, and every motion is checked against
-              ESA's Gaia.
+              Every six months NASA's SPHEREx telescope photographs the entire sky in 102 infrared colours. Argus lines
+              those visits up for any spot you choose and plays them back, so you can watch nearby stars drift, cold
+              brown dwarfs glow at long wavelengths and variable stars brighten and fade, with every motion checked
+              against ESA's Gaia.
             </p>
             <div className="hero-cta">
               <a href="/app" onClick={go("/app")} className="btn btn-primary btn-lg">Open the tool</a>
@@ -43,15 +46,9 @@ export function Home({ targets, navigate }: Props) {
             </div>
             <p className="hero-meta mono">Free · no sign-up · works on phones · open source</p>
           </div>
-          <figure className="hero-view">
-            <div className="viewport">
-              <img src="/site/hero-blink.gif" width={480} height={514}
-                   alt="SPHEREx difference images of Barnard's Star across five visits: a cyan and magenta pair shifting north." />
-              <span className="tick tl" /><span className="tick tr" /><span className="tick bl" /><span className="tick br" />
-            </div>
-            <figcaption>Barnard's Star, Aug 2025 → Sep 2026, 8′ field. <span className="now">Cyan</span> is brighter now,
-              <span className="before"> magenta</span> brighter before: the star is moving north.</figcaption>
-          </figure>
+          <div className="hero-view">
+            <BlackHole />
+          </div>
         </section>
 
         <section className="band telemetry-band" aria-labelledby="tm-h">
@@ -117,12 +114,12 @@ export function Home({ targets, navigate }: Props) {
           <div>
             <h2 id="px-h2">The Planet X question</h2>
             <p>Planet X is a hypothesis: an unseen planet far beyond Neptune. Argus can't find it, since it would be
-              about three magnitudes fainter than one SPHEREx visit can see. What it can do is show how the hunt works.
-              Turn on the Planet X overlay and watch how far such a planet would jump between visits as Earth moves
-              around the Sun: about 14 arcminutes at 500 AU.</p>
+              about three magnitudes fainter than one SPHEREx visit can see. What it can do is show how the hunt works:
+              a distant planet gives itself away by jumping between visits as Earth moves around the Sun. Turn on the
+              Planet X overlay in the tool to draw that jump on real SPHEREx images.</p>
             <a href="/t/barnard?mode=diff&px=500" onClick={go("/t/barnard?mode=diff&px=500")} className="textlink">Try it on Barnard's Star →</a>
           </div>
-          <img src="/site/fig-planetx.png" alt="The Planet X overlay: a magenta track from the field centre to the edge, labelled 13.2 arcminutes, leaves the field." loading="lazy" className="split-img" />
+          <PlanetXAnim />
         </section>
 
         <section className="band split" aria-labelledby="team-h">
