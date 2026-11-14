@@ -85,9 +85,9 @@ export function LightCurve({ points, band, mira }: Props) {
 }
 
 function fmtFlux(ujy: number): string {
-  if (ujy >= 1e6) return `${(ujy / 1e6).toPrecision(2)} Jy`;
-  if (ujy >= 1e3) return `${(ujy / 1e3).toPrecision(2)} mJy`;
-  return `${ujy >= 10 ? Math.round(ujy) : ujy.toPrecision(2)} µJy`;
+  if (ujy >= 1e6) return `${trim(ujy / 1e6)} Jy`;
+  if (ujy >= 1e3) return `${trim(ujy / 1e3)} mJy`;
+  return `${trim(ujy)} µJy`;
 }
 
 function niceLogTicks(y0: number, y1: number): number[] {
@@ -104,4 +104,8 @@ function niceLogTicks(y0: number, y1: number): number[] {
 function timeTicks(x0: number, x1: number): number[] {
   const n = 3;
   return Array.from({ length: n }, (_, i) => x0 + ((x1 - x0) * (i + 0.5)) / n);
+}
+
+function trim(v: number): string {
+  return v >= 10 ? String(Math.round(v)) : v.toPrecision(2);
 }

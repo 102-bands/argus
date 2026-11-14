@@ -101,13 +101,17 @@ function binLogLambda(pts: PhotPoint[]) {
 }
 
 function fmt(ujy: number): string {
-  if (ujy >= 1e6) return `${(ujy / 1e6).toPrecision(2)} Jy`;
-  if (ujy >= 1e3) return `${(ujy / 1e3).toPrecision(2)} mJy`;
-  return `${ujy >= 10 ? Math.round(ujy) : ujy.toPrecision(2)} µJy`;
+  if (ujy >= 1e6) return `${trim(ujy / 1e6)} Jy`;
+  if (ujy >= 1e3) return `${trim(ujy / 1e3)} mJy`;
+  return `${trim(ujy)} µJy`;
 }
 
 function logTicks(y0: number, y1: number): number[] {
   const out: number[] = [];
   for (let e = Math.floor(y0); e <= Math.ceil(y1); e++) if (e >= y0 && e <= y1) out.push(10 ** e);
   return out.length ? out : [10 ** ((y0 + y1) / 2)];
+}
+
+function trim(v: number): string {
+  return v >= 10 ? String(Math.round(v)) : v.toPrecision(2);
 }
