@@ -53,6 +53,7 @@ export function ShareDialog({ onClose, sources }: { onClose: () => void; sources
       await navigator.clipboard.writeText(text);
       setCopied(what);
       track(what === "link" ? "share_link" : "embed_copy");
+      countEvent("download"); // the home page counts copies and downloads together as "Shares and downloads"
     } catch {
       setCopied(`${what}-failed`);
     }

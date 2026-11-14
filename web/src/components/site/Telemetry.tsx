@@ -2,12 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchStats, type Stats } from "../../lib/site";
 
-const ROWS: { key: keyof Omit<Stats, "since">; label: string; note: string }[] = [
+const ROWS: { key: keyof Omit<Stats, "since" | "visits">; label: string; note: string }[] = [
   { key: "fields_analysed", label: "Fields analysed", note: "every time someone opens a patch of sky and it finishes loading" },
   { key: "live_searches", label: "Live searches", note: "new positions built from the NASA archive on our server" },
   { key: "exposures_processed", label: "Exposures processed", note: "SPHEREx images read, cleaned and aligned for live searches" },
-  { key: "downloads", label: "Reports and animations", note: "PDF reports and GIFs downloaded" },
-  { key: "visits", label: "Visitors", note: "one per browser per day, no cookies" },
+  { key: "downloads", label: "Shares and downloads", note: "links and embed codes copied, PDF reports and GIFs downloaded" },
 ];
 
 const reduced = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;

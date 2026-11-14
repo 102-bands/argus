@@ -2,7 +2,6 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import type { Target } from "./lib/api";
 import { loadPresetIndex, presetPath } from "./lib/api";
 import { track } from "./lib/analytics";
-import { countVisitOncePerDay } from "./lib/site";
 import { SearchBox } from "./components/SearchBox";
 import { Explorer } from "./components/Explorer";
 
@@ -47,7 +46,6 @@ export function App() {
 
   useEffect(() => {
     loadPresetIndex().then(setTargets).catch(() => setTargets([]));
-    countVisitOncePerDay();
     const onPop = () => setRoute(parseRoute(window.location.pathname));
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);

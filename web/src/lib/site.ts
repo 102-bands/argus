@@ -14,7 +14,7 @@ export interface Stats {
 export const CHALLENGE_URL = "https://www.spaceappschallenge.org/2026/challenges/planet-x-and-spherex/";
 
 /** Count one event for the public counters. Fire-and-forget; never blocks or breaks the page. */
-export function countEvent(event: "field" | "download" | "visit"): void {
+export function countEvent(event: "field" | "download"): void {
   try {
     void fetch(`${API_BASE}/count`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event }), keepalive: true,
@@ -22,18 +22,6 @@ export function countEvent(event: "field" | "download" | "visit"): void {
   } catch {
     // counters are best-effort
   }
-}
-
-/** One "visit" per browser per day (no cookies; a date in localStorage). */
-export function countVisitOncePerDay(): void {
-  const today = new Date().toISOString().slice(0, 10);
-  try {
-    if (localStorage.getItem("argus.visitDay") === today) return;
-    localStorage.setItem("argus.visitDay", today);
-  } catch {
-    return; // storage blocked: skip rather than count every page view
-  }
-  countEvent("visit");
 }
 
 export async function fetchStats(signal?: AbortSignal): Promise<Stats> {
