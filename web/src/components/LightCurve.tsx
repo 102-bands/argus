@@ -87,7 +87,7 @@ export function LightCurve({ points, band, mira }: Props) {
 function fmtFlux(ujy: number): string {
   if (ujy >= 1e6) return `${(ujy / 1e6).toPrecision(2)} Jy`;
   if (ujy >= 1e3) return `${(ujy / 1e3).toPrecision(2)} mJy`;
-  return `${ujy.toPrecision(2)} µJy`;
+  return `${ujy >= 10 ? Math.round(ujy) : ujy.toPrecision(2)} µJy`;
 }
 
 function niceLogTicks(y0: number, y1: number): number[] {

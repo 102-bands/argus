@@ -51,12 +51,12 @@ const EMPTY: SkyData = {
 
 const FETCH_PARALLEL = 6;
 
-export function useSkyData(field: Field | null, worker: Worker, retryToken: number): SkyData {
+export function useSkyData(field: Field | null, worker: Worker | null, retryToken: number): SkyData {
   const [data, setData] = useState<SkyData>(EMPTY);
   const decodedRef = useRef(new Map<string, DecodedFrame>());
 
   useEffect(() => {
-    if (!field) {
+    if (!field || !worker) {
       setData(EMPTY);
       return;
     }

@@ -119,7 +119,12 @@ function render(msg: Extract<WorkerIn, { type: "render" }>): WorkerOut {
     hi = med + 10 * sigma;
   } else {
     // Shared limits across every frame, so brightness never flickers for no reason (PRD §7.6).
-    [lo, hi] = percentiles(sources, [0.5, 99.5]);
+    // The black point sits ~1σ below the sky median, not at the 0.5th percentile: with mostly-empty
+    // fields that percentile is deep in the noise and leaves the sky mid-grey.
+    const [p05, q25, med, q75, p995] = percentiles(sources, [0.5, 25, 50, 75, 99.5]);
+    const sigma = (q75 - q25) / 1.349;
+    lo = Math.max(p05, med - sigma);
+    hi = p995;
   }
   const scale = makeScale(msg.stretch, lo, hi, msg.soft);
   const grey = (v: number, out: number[]) => {

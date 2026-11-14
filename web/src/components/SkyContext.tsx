@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const IRSA_HIPS = "https://irsa.ipac.caltech.edu/data/hips/SPHEREx/spherex_allsky_cube";
+const CONTEXT_SLICE = 99;
 
 interface Props {
   ra: number;
@@ -31,6 +32,7 @@ export default function SkyContext({ ra, dec, size }: Props) {
           fov: Math.max((size * 6) / 60, 0.3),
           target: `${ra} ${dec}`,
           projection: "TAN",
+          survey: IRSA_HIPS, // never the CDS default (DSS), which was down on 2026-11-14
           showReticle: false,
           showZoomControl: false,
           showFullscreenControl: false,
@@ -46,9 +48,12 @@ export default function SkyContext({ ra, dec, size }: Props) {
           showStatusBar: false,
           showContextMenu: false,
         });
-        a.setImageSurvey(a.createImageSurvey("spherex_allsky", "SPHEREx all-sky (DR1)", IRSA_HIPS, "equatorial", 5, {
+        const layer = a.createImageSurvey("spherex_allsky", "SPHEREx all-sky (DR1)", IRSA_HIPS, "equatorial", 5, {
           imgFormat: "png",
-        }));
+        });
+        a.setImageSurvey(layer);
+        // The cube has 102 slices and some tiles lack middle slices; slice 99 (~4.9 µm) is complete.
+        layer.setSliceNumber?.(CONTEXT_SLICE);
         const overlay = A.graphicOverlay({ color: "#22B8D8", lineWidth: 2 });
         a.addOverlay(overlay);
         al.current = a;
@@ -60,6 +65,14 @@ export default function SkyContext({ ra, dec, size }: Props) {
     })();
     return () => {
       cancelled = true;
+      // Free the WebGL context; browsers allow only ~16 at once.
+      try {
+        al.current?.destroy?.();
+      } catch {
+        // already gone
+      }
+      al.current = null;
+      if (div.current) div.current.innerHTML = "";
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

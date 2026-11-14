@@ -34,8 +34,13 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
   const [retry, setRetry] = useState(0);
   const [bitmaps, setBitmaps] = useState<Map<string, ImageBitmap>>(new Map());
   const [announce, setAnnounce] = useState("");
-  const worker = useMemo(() => new Worker(new URL("../workers/frameDecoder.worker.ts", import.meta.url), { type: "module" }), []);
-  useEffect(() => () => worker.terminate(), [worker]);
+  // Created in an effect (not useMemo) so StrictMode's mount/unmount/mount never leaves a terminated worker.
+  const [worker, setWorker] = useState<Worker | null>(null);
+  useEffect(() => {
+    const w = new Worker(new URL("../workers/frameDecoder.worker.ts", import.meta.url), { type: "module" });
+    setWorker(w);
+    return () => w.terminate();
+  }, []);
 
   // Re-read URL state when the route changes (back/forward, preset clicks).
   useEffect(() => {
@@ -82,7 +87,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
   // Ask the worker to stretch and colour the ready frames.
   const renderId = useRef(0);
   useEffect(() => {
-    if (!ready.length) {
+    if (!ready.length || !worker) {
       setBitmaps(new Map());
       return;
     }
