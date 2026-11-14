@@ -20,6 +20,7 @@ from starlette.exceptions import HTTPException
 from . import __version__
 from .cache import DiskCache, RamLRU
 from .config import get_settings
+from .gaia import cone_sync
 from .jobs import Busy, BlinkSpec, JobRunner, describe_epochs
 from .models import BlinkRequest, validate_collections
 from .physics import CoordError, group_epochs, parse_dec, parse_ra
@@ -215,6 +216,19 @@ def create_app() -> FastAPI:
         else:
             data = brotli.decompress(data)
         return Response(data, media_type="application/octet-stream", headers=headers)
+
+    @app.get("/api/gaia")
+    @limiter.limit("30/minute")
+    async def gaia(request: Request, ra: Annotated[float, Query(ge=0, lt=360)], dec: Annotated[float, Query(ge=-90, le=90)],
+                   radius_arcmin: Annotated[float, Query(gt=0, le=15)] = 3.0):
+        """Gaia DR3 at epoch 2016.0; the client moves each source to each epoch's date (PRD §8)."""
+        key = f"{ra:.4f}_{dec:.4f}_{radius_arcmin:.2f}".replace("-", "m")
+        cached = request.app.state.cache.get("gaia", key)
+        if cached is None:
+            rows = await cone_sync(ra, dec, radius_arcmin, request.app.state.http)
+            cached = json.dumps(rows).encode()
+            request.app.state.cache.put("gaia", key, cached)
+        return Response(cached, media_type="application/json", headers={"Cache-Control": "public, max-age=2592000"})
 
     @app.get("/api/lightcurve")
     @limiter.limit("30/minute")

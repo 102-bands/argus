@@ -1,0 +1,26 @@
+/* Argus brand tokens (PRD §9.4). Ink background, white text, signal colours only. */
+:root {
+  --ink: #0b0b0f;
+  --ink-2: #121218;
+  --ink-3: #1a1a22;
+  --white: #ffffff;
+  --fg: rgba(255, 255, 255, 0.92);
+  --fg-2: rgba(255, 255, 255, 0.66);
+  --fg-3: rgba(255, 255, 255, 0.44);
+  --line: rgba(255, 255, 255, 0.14);
+  --line-2: rgba(255, 255, 255, 0.26);
+  --cyan: #22b8d8;   /* now / tracking */
+  --magenta: #e04cf0;/* before / mover */
+  --green: #1fd67a;  /* ok */
+  --amber: #f2b33d;  /* warning */
+  --d1: #8fa8ff;
+  --d2: #5fd0e6;
+  --d3: #4fdc9a;
+  --d4: #d9d94a;
+  --d5: #f0a23b;
+  --d6: #ef6b6b;
+  --font-sans: "Poppins", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --gap: 16px;
+  color-scheme: dark;
+}

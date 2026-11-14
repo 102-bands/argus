@@ -1,0 +1,29 @@
+# Static site for Railway (PRD §11.3). Replace <domain> once bought.
+{
+	admin off
+}
+
+:{$PORT:8080} {
+	root * /srv
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), camera=(), microphone=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		-Server
+		-X-Powered-By
+	}
+
+	@embed path /embed /embed/*
+	header @embed Content-Security-Policy "default-src 'self'; script-src 'self' https://cloud.umami.is 'wasm-unsafe-eval'; connect-src 'self' {$API_ORIGIN} https://gateway.umami.is https://irsa.ipac.caltech.edu https://alasky.cds.unistra.fr; img-src 'self' data: blob: https://irsa.ipac.caltech.edu https://alasky.cds.unistra.fr; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors *"
+	@notembed not path /embed /embed/*
+	header @notembed Content-Security-Policy "default-src 'self'; script-src 'self' https://cloud.umami.is 'wasm-unsafe-eval'; connect-src 'self' {$API_ORIGIN} https://gateway.umami.is https://irsa.ipac.caltech.edu https://alasky.cds.unistra.fr; img-src 'self' data: blob: https://irsa.ipac.caltech.edu https://alasky.cds.unistra.fr; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+
+	@immutable path /assets/* /presets/*/frames/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	try_files {path} /index.html
+	file_server
+}
