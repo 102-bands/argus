@@ -95,7 +95,14 @@ function render(msg: Extract<WorkerIn, { type: "render" }>): WorkerOut {
 
   if (msg.mode === "diff") {
     const ref = (msg.refKey && frames.get(msg.refKey)) || list[0];
-    const diffs = list.map((f) => f.pixels.map((v, i) => v - ref.pixels[i]));
+    // Subtract each frame's sky median first: residual zodiacal light differs between visits and
+    // would otherwise tint the whole difference image.
+    const sky = (px: Float32Array) => percentiles([px], [50])[0];
+    const refSky = sky(ref.pixels);
+    const diffs = list.map((f) => {
+      const s = sky(f.pixels);
+      return f.pixels.map((v, i) => v - s - (ref.pixels[i] - refSky));
+    });
     const [lim] = percentiles(diffs.map((d) => d.map(Math.abs)), [99.5]);
     const L = Math.max(lim, 1e-12);
     const images = list.map((f, i) => ({
