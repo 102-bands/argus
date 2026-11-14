@@ -318,7 +318,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
           </section>
         )}
         <Inspector hover={hover} grid={data.grid} decoded={decoded} frame={cur} photometry={data.photometry}
-                   band={view.band} isMira={fieldTarget?.id === "r-dra"} />
+                   band={view.band} isMira={fieldTarget?.id === "r-dra"} epochs={data.epochs} />
         {field && (
           <section className="panel" aria-labelledby="ctx-h">
             <h2 id="ctx-h" className="label">Sky context</h2>

@@ -1,8 +1,11 @@
-import type { FrameMeta, PhotPoint } from "../lib/api";
+import { useState } from "react";
+import type { Epoch, FrameMeta, PhotPoint } from "../lib/api";
+import { track } from "../lib/analytics";
 import { LAYER_ALL_MASKED, LAYER_SATURATED, type DecodedFrame } from "../lib/frame";
 import { formatDec, formatRa, pixelToWorld, type GridWcs } from "../lib/physics";
 import type { Hover } from "./BlinkViewer";
 import { LightCurve } from "./LightCurve";
+import { Spectrum } from "./Spectrum";
 
 interface Props {
   hover: Hover | null;
@@ -12,9 +15,11 @@ interface Props {
   photometry: PhotPoint[];
   band: string;
   isMira: boolean;
+  epochs: Epoch[];
 }
 
-export function Inspector({ hover, grid, decoded, frame, photometry, band, isMira }: Props) {
+export function Inspector({ hover, grid, decoded, frame, photometry, band, isMira, epochs }: Props) {
+  const [tab, setTab] = useState<"lc" | "spec">("lc");
   let rows: [string, React.ReactNode][] = [];
   if (grid && hover) {
     const [ra, dec] = pixelToWorld(grid, hover.x, hover.y);
@@ -57,8 +62,16 @@ export function Inspector({ hover, grid, decoded, frame, photometry, band, isMir
         )}
       </section>
       <section className="panel" aria-labelledby="lc-h">
-        <h2 id="lc-h" className="label">Light curve · centre source</h2>
-        <LightCurve points={photometry} band={band} mira={isMira} />
+        <h2 id="lc-h" className="label">Centre source</h2>
+        <div className="tabs" role="tablist" aria-label="Centre source charts">
+          <button className="btn" role="tab" aria-selected={tab === "lc"} aria-pressed={tab === "lc"}
+                  onClick={() => { setTab("lc"); track("lightcurve_open", { band }); }}>Light curve</button>
+          <button className="btn" role="tab" aria-selected={tab === "spec"} aria-pressed={tab === "spec"}
+                  onClick={() => { setTab("spec"); track("spectrum_open", { band }); }}>Spectrum</button>
+        </div>
+        {tab === "lc"
+          ? <LightCurve points={photometry} band={band} mira={isMira} />
+          : <Spectrum points={photometry} epochs={epochs} initialEpoch={frame?.epoch ?? null} />}
       </section>
     </>
   );
