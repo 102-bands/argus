@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { track } from "../lib/analytics";
+import { countEvent } from "../lib/site";
 import type { GifInput } from "../lib/gif";
 import type { ReportInput } from "../lib/report";
 
@@ -65,10 +66,12 @@ export function ShareDialog({ onClose, sources }: { onClose: () => void; sources
         const { buildReport } = await import("../lib/report");
         await buildReport({ ...sources.report, onProgress: (m) => setBusy(`Report: ${m.toLowerCase()}`) });
         track("report_download", { frames: sources.report.frames.length });
+        countEvent("download");
       } else if (what === "gif" && sources.gif) {
         const { buildGif } = await import("../lib/gif");
         await buildGif(sources.gif);
         track("gif_download", { frames: sources.gif.frames.length, mode: sources.gif.mode });
+        countEvent("download");
       }
     } catch (e) {
       setError(`Couldn't build the ${what === "pdf" ? "report" : "animation"}: ${String(e).slice(0, 120)}`);

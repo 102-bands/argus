@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { countEvent } from "../lib/site";
 import { presetPath, type FrameMeta, type Target } from "../lib/api";
 import { parseDec, parseRa } from "../lib/physics";
 import { BANDS, readState, writeState, type Band, type Mode, type ViewState } from "../lib/urlState";
@@ -16,6 +17,9 @@ import { checkMotion, summary } from "../lib/validate";
 import { HelpDialog, ShareDialog } from "./Dialogs";
 
 const SkyContext = lazy(() => import("./SkyContext"));
+// Welcome dialog and tour (driver.js) load only when needed.
+const WelcomeDialog = lazy(() => import("./Tour").then((m) => ({ default: m.WelcomeDialog })));
+const welcomed = () => { try { return localStorage.getItem("argus.welcomed") === "1"; } catch { return false; } };
 
 interface Props {
   presetId: string | null;
@@ -24,6 +28,8 @@ interface Props {
   navigate: (path: string) => void;
   shareOpen: boolean;
   onShareClose: () => void;
+  /** Bumped by the header's Tour button to (re)start the guided tour. */
+  tourToken?: number;
 }
 
 // First-visit hint per preset: what the pulsing ring is showing.
@@ -39,7 +45,7 @@ const hintSeen = () => { try { return localStorage.getItem(HINT_KEY) === "1"; } 
 
 const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
-export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShareClose }: Props) {
+export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShareClose, tourToken = 0 }: Props) {
   const [view, setView] = useState<ViewState>(() => readState(window.location.search));
   const [soft, setSoft] = useState(0.1);
   const [idx, setIdx] = useState(0);
@@ -50,6 +56,8 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
   const [bitmaps, setBitmaps] = useState<Map<string, ImageBitmap>>(new Map());
   const [announce, setAnnounce] = useState("");
   const [hintOpen, setHintOpen] = useState(() => !hintSeen());
+  const [welcomeOpen, setWelcomeOpen] = useState(() => !embed && !welcomed());
+  const [touring, setTouring] = useState(false);
   // Created in an effect (not useMemo) so StrictMode's mount/unmount/mount never leaves a terminated worker.
   const [worker, setWorker] = useState<Worker | null>(null);
   useEffect(() => {
@@ -185,7 +193,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
 
   // The first-visit hint goes away on the first click or key press, or after 12 s, and stays away.
   useEffect(() => {
-    if (!hintOpen || processing || !fieldTarget) return;
+    if (!hintOpen || processing || !fieldTarget || welcomeOpen || touring) return;
     const close = () => {
       setHintOpen(false);
       try { localStorage.setItem(HINT_KEY, "1"); } catch { /* private mode: show again next time */ }
@@ -198,7 +206,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       window.removeEventListener("pointerdown", close);
       window.removeEventListener("keydown", close);
     };
-  }, [hintOpen, processing, fieldTarget]);
+  }, [hintOpen, processing, fieldTarget, welcomeOpen, touring]);
 
   // Keyboard (PRD §9.3).
   useEffect(() => {
@@ -305,7 +313,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       badges={badges}
     >
       {status}
-      {hintOpen && !processing && fieldTarget && HINTS[fieldTarget.id] && view.mode !== "stack" && (
+      {hintOpen && !welcomeOpen && !touring && !processing && fieldTarget && HINTS[fieldTarget.id] && view.mode !== "stack" && (
         <div className="hint-chip" role="note">{HINTS[fieldTarget.id]}</div>
       )}
     </BlinkViewer>
@@ -360,6 +368,27 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
 
   const showPlots = view.view === "plots";
 
+  // Guided tour: started from the welcome dialog or the header's Tour button.
+  const startTour = useCallback(async () => {
+    const m = await import("./Tour");
+    setWelcomeOpen(false);
+    setTouring(true);
+    m.startTour({
+      setMode, setView: (v) => update({ view: v }), pause: () => setPlaying(false), onEnd: () => setTouring(false),
+    });
+  }, [setMode, update]);
+  useEffect(() => { if (tourToken > 0) void startTour(); }, [tourToken]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Public counter: one "field analysed" each time a field finishes loading (presets and live searches).
+  const counted = useRef<string>("");
+  useEffect(() => {
+    if (embed || processing || !ready.length || !field) return;
+    const id = `${field.presetId ?? `${field.ra.toFixed(4)},${field.dec.toFixed(4)}`}@${field.size}`;
+    if (counted.current === id) return;
+    counted.current = id;
+    countEvent("field");
+  }, [embed, processing, ready.length, field]);
+
   // Preset target vs Gaia on every visit of this band (only once every frame is in).
   const motionCheck = useMemo(
     () => (fieldTarget && data.grid && !processing && ready.length >= 2
@@ -370,7 +399,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
   return (
     <main className="explorer" id="main">
       <nav className="rail rail-left" aria-label="Controls">
-        <div className="ctl-group">
+        <div className="ctl-group" data-tour="view">
           <span className="ctl-h" id="view-l">View</span>
           <div className="seg fill" role="group" aria-labelledby="view-l">
             <button className="btn" aria-pressed={!showPlots} onClick={() => update({ view: "image" })} title="The blink image (P)">Image</button>
@@ -396,7 +425,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
           onRef={(ep) => update({ epoch: ep })}
         />}
         {showPlots ? (
-          <div className="plots-wrap">
+          <div className="plots-wrap" data-tour="plots">
             <Plots photometry={data.photometry} band={view.band} isMira={fieldTarget?.id === "r-dra"} epochs={data.epochs}
                    epoch={cur?.epoch ?? null} targetName={fieldTarget?.name ?? null} />
           </div>
@@ -406,7 +435,7 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       </div>
       <aside className="rail side" aria-label="Details">
         {fieldTarget && (
-          <section className="panel">
+          <section className="panel" data-tour="notes">
             <h2 className="label">{fieldTarget.name}</h2>
             <p className="note target-notes" style={{ margin: 0 }} title={fieldTarget.notes}>{fieldTarget.notes}</p>
           </section>
@@ -420,14 +449,14 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
                           : ready.length > 1 ? { mjd: ready[ready.length - 1].t_mid, label: ready[ready.length - 1].epoch_label } : null} />
         )}
         {field && view.px === 0 && (
-          <section className="panel" aria-labelledby="ctx-h">
+          <section className="panel" aria-labelledby="ctx-h" data-tour="sky">
             <h2 id="ctx-h" className="label">Sky context</h2>
             <Suspense fallback={<p className="note">Loading the sky map…</p>}>
               <SkyContext ra={field.ra} dec={field.dec} size={field.size} />
             </Suspense>
           </section>
         )}
-        <section className="panel" aria-labelledby="pre-h">
+        <section className="panel" aria-labelledby="pre-h" data-tour="presets">
           <h2 id="pre-h" className="label">Presets</h2>
           <div className="presets">
             {targets.map((t) => (
@@ -446,6 +475,11 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
       </aside>
       {live}
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
+      {welcomeOpen && (
+        <Suspense fallback={null}>
+          <WelcomeDialog onTour={() => void startTour()} onSkip={() => setWelcomeOpen(false)} />
+        </Suspense>
+      )}
       {shareOpen && field && <ShareDialog onClose={onShareClose} sources={{
         report: worker && !processing && ready.length ? {
           worker, name: fieldTarget?.name ?? "", notes: fieldTarget?.notes ?? "", ra: field.ra, dec: field.dec, size: field.size,

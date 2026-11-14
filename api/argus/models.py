@@ -53,3 +53,27 @@ class BlinkRequest(BaseModel):
         if "all" in self.detectors:
             return list(DETECTORS)
         return sorted(set(self.detectors))
+
+
+EMAIL = r"^[^@\s<>]{1,64}@[^@\s<>]{1,190}\.[A-Za-z]{2,24}$"
+
+
+class ContactRequest(BaseModel):
+    """Website contact form. `website` is a honeypot: people never see it, bots fill it in."""
+    name: str = Field(..., min_length=1, max_length=100)
+    email: str = Field(..., max_length=200, pattern=EMAIL)
+    topic: Literal["question", "feedback", "bug", "collaboration", "press", "other"] = "question"
+    message: str = Field(..., min_length=10, max_length=4000)
+    website: str = Field("", max_length=200)
+
+    @field_validator("name", "message")
+    @classmethod
+    def _strip(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("must not be blank")
+        return v
+
+
+class CountRequest(BaseModel):
+    event: Literal["field", "download", "visit"]

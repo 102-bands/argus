@@ -44,7 +44,8 @@ button, input, select { font: inherit; color: inherit; }
 .seg.fill .btn { flex: 1; text-align: center; }
 
 /* Search */
-.search { flex: 1; max-width: 560px; position: relative; }
+.search-slot { flex: 1; max-width: 560px; min-width: 0; }
+.search { position: relative; }
 .search input {
   width: 100%; background: var(--ink-2); border: 1px solid var(--line-2); padding: 7px 12px; border-radius: 0;
   font-family: var(--font-mono); font-size: 13px;
@@ -291,6 +292,45 @@ button, input, select { font: inherit; color: inherit; }
   .sky-map { height: 96px; }
   .side .panel { padding: 8px 14px; }
   .side .panel h2 { margin-bottom: 5px; }
+}
+
+/* Welcome dialog (first visit to the tool) */
+.welcome { max-width: 480px; }
+.welcome-logo { height: 22px; display: block; margin-bottom: 18px; }
+.welcome h2 { font-size: 24px; margin: 0 0 10px; }
+.welcome p { color: var(--fg-2); line-height: 1.6; }
+.welcome-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.btn-primary { background: var(--white); color: var(--ink); border-color: var(--white); }
+.btn-primary:hover:not(:disabled) { background: var(--cyan); border-color: var(--cyan); }
+
+/* Guided tour (driver.js), restyled to the Argus look */
+.driver-popover.argus-tour {
+  background: var(--ink-2); color: var(--fg); border: 1px solid var(--cyan); border-radius: 0; max-width: 380px;
+  font-family: var(--font-sans); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); padding: 18px 20px 14px;
+}
+.argus-tour .driver-popover-title { font-size: 16px; font-weight: 500; color: var(--white); }
+.argus-tour .driver-popover-description { font-size: 13.5px; line-height: 1.55; color: var(--fg-2); }
+.argus-tour .driver-popover-description b { color: var(--fg); font-weight: 500; }
+.argus-tour kbd, .argus-tour code { font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--line-2); padding: 0 4px; color: var(--fg); }
+.argus-tour .driver-popover-progress-text { font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); }
+.argus-tour .driver-popover-navigation-btns button {
+  background: transparent; color: var(--fg); border: 1px solid var(--line-2); border-radius: 0; text-shadow: none;
+  font: 500 12.5px var(--font-sans); padding: 6px 12px;
+}
+.argus-tour .driver-popover-navigation-btns button.driver-popover-next-btn { background: var(--white); color: var(--ink); border-color: var(--white); }
+.argus-tour .driver-popover-close-btn { color: var(--fg-3); }
+.argus-tour .driver-popover-close-btn:hover { color: var(--white); }
+.argus-tour .driver-popover-arrow-side-left { border-left-color: var(--cyan); }
+.argus-tour .driver-popover-arrow-side-right { border-right-color: var(--cyan); }
+.argus-tour .driver-popover-arrow-side-top { border-top-color: var(--cyan); }
+.argus-tour .driver-popover-arrow-side-bottom { border-bottom-color: var(--cyan); }
+.site-loading { min-height: 100vh; background: var(--ink); }
+
+/* Phones: the search box takes its own row under the logo and buttons. */
+@media (max-width: 767px) {
+  .topbar { flex-wrap: wrap; gap: 10px 12px; }
+  .search-slot { order: 3; flex-basis: 100%; max-width: none; }
+  .topbar nav { gap: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

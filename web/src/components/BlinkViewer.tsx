@@ -241,7 +241,7 @@ export function BlinkViewer(p: Props) {
   };
 
   return (
-    <div className="viewer-frame">
+    <div className="viewer-frame" data-tour="image">
       {/* A row above the square, not overlaid: on narrow screens the label and badges wrap instead of colliding. */}
       <div className="viewer-head">
         <div className="frame-label" aria-hidden="true">{p.label}</div>

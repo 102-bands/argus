@@ -48,7 +48,7 @@ def test_bad_ids_404(client):
 
 
 def test_body_limit(client):
-    r = client.post("/api/blink", content=b"x" * 5000, headers={"content-type": "application/json"})
+    r = client.post("/api/blink", content=b"x" * 20000, headers={"content-type": "application/json"})
     assert r.status_code == 413
 
 

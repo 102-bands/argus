@@ -41,7 +41,7 @@ const SIZES = [1, 2, 3, 5, 8, 10, 15];
 export function Controls(p: Props) {
   return (
     <div className={`controls ${p.layout}`} role="toolbar" aria-label="Playback and display">
-      <div className="ctl-group">
+      <div className="ctl-group" data-tour="playback">
         <span className="ctl-h" id="play-l">Playback</span>
         <div className="ctl">
           <div className="seg" role="group" aria-labelledby="play-l">
@@ -57,7 +57,7 @@ export function Controls(p: Props) {
         </div>
       </div>
 
-      <div className="ctl-group">
+      <div className="ctl-group" data-tour="mode">
         <span className="ctl-h" id="mode-l">Mode</span>
         <div className="seg fill" role="group" aria-labelledby="mode-l">
           {MODES.map((m) => (
@@ -66,7 +66,7 @@ export function Controls(p: Props) {
         </div>
       </div>
 
-      <div className="ctl-group">
+      <div className="ctl-group" data-tour="band">
         <span className="ctl-h" id="band-l" title="SPHEREx has six detectors, D1 (0.75 µm) to D6 (5 µm). “all” adds them together.">Band</span>
         <div className="seg fill" role="group" aria-labelledby="band-l">
           {BANDS.map((b, i) => (
@@ -76,7 +76,7 @@ export function Controls(p: Props) {
         </div>
       </div>
 
-      <div className="ctl-group">
+      <div className="ctl-group" data-tour="brightness">
         <span className="ctl-h" id="disp-l">Brightness</span>
         <div className="ctl" title="How brightness maps to grey. asinh shows faint and bright things together.">
           <select value={p.stretch} onChange={(e) => p.onStretch(e.target.value as Stretch)} aria-label="Stretch">
@@ -88,7 +88,7 @@ export function Controls(p: Props) {
         </div>
       </div>
 
-      <div className="ctl-group">
+      <div className="ctl-group" data-tour="field">
         <span className="ctl-h" id="field-l">Field of view</span>
         <div className="ctl" title="How much sky to show. Bigger fields take longer to build.">
           <select value={p.size} onChange={(e) => p.onSize(Number(e.target.value))} aria-label="Field of view in arcminutes">
@@ -97,7 +97,7 @@ export function Controls(p: Props) {
         </div>
       </div>
 
-      <div className="ctl-group">
+      <div className="ctl-group" data-tour="overlays">
         <span className="ctl-h" id="ovl-l">Overlays</span>
         <div className="ctl">
           <div className="seg fill" role="group" aria-labelledby="ovl-l">

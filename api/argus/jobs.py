@@ -91,6 +91,8 @@ class JobRunner:
         self.jobs: dict[str, Job] = {}
         self.by_key: dict[str, Job] = {}
         self.running = asyncio.Semaphore(settings.max_running_jobs)
+        # Called with (job, n_exposures) when a job finishes; the website counters hook in here.
+        self.on_done = None
         self.pool = ThreadPoolExecutor(max_workers=settings.max_concurrent_fetch, thread_name_prefix="argus-px")
 
     def get(self, job_id: str) -> Job | None:
@@ -274,6 +276,11 @@ class JobRunner:
             "photometry": sorted(photometry, key=lambda p: p["mjd"]), "n_exposures": total, "created": time.time(),
         }
         self.cache.put("manifest", job.key, json.dumps(manifest).encode())
+        if self.on_done:
+            try:
+                self.on_done(job, total)
+            except Exception:  # noqa: BLE001 - counters must never fail a job
+                log.exception("on_done hook failed")
         job.emit("done", {"manifest_key": job.key, "n_frames": len(frames)})
 
     def _emit_frame(self, job, spec, grid, n, ep, product, det, acc, release) -> dict:

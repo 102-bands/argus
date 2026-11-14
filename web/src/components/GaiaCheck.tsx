@@ -4,7 +4,7 @@ import { MIN_EXP, PASS_PX, pxToArcsec, shortSummary, summary, type MotionCheck }
 export function GaiaCheck({ check, band }: { check: MotionCheck; band: string }) {
   const ok = check.detected >= 2;
   return (
-    <section className="panel" aria-labelledby="gaia-h">
+    <section className="panel" aria-labelledby="gaia-h" data-tour="gaiacheck">
       <h2 id="gaia-h" className="label">Checked against Gaia</h2>
       <p className={`check-sum ${ok ? (check.pass ? "pass" : "fail") : ""}`}>
         {ok && <span className="mark" aria-hidden="true">{check.pass ? "✓" : "!"}</span>}

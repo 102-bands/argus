@@ -37,7 +37,7 @@ export function Inspector({ hover, grid, decoded, frame }: Props) {
     );
   }
   return (
-    <section className="panel" aria-labelledby="insp-h">
+    <section className="panel" aria-labelledby="insp-h" data-tour="inspector">
       <h2 id="insp-h" className="label">Inspector</h2>
       {rows.length ? (
         <dl className="kv">

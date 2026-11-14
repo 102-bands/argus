@@ -15,7 +15,7 @@ interface Props {
 export function Timeline({ epochs, loaded, current, refEpoch, showRef, onSelect, onRef, compact = false }: Props) {
   if (!epochs.length) return null;
   return (
-    <div className={compact ? "timeline compact" : "timeline"}>
+    <div className={compact ? "timeline compact" : "timeline"} data-tour="timeline">
       <span className="label" title={showRef ? "Shift-click a visit to compare every frame against it" : undefined}>
         {compact ? `${epochs.length} visits` : `Timeline · ${epochs.length} visits${showRef ? " · shift-click sets the reference" : ""}`}
       </span>

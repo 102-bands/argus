@@ -10,7 +10,7 @@ ALLOWED_HTTPS_HOSTS = frozenset({
     "gea.esac.esa.int",
 })
 ALLOWED_S3_BUCKETS = frozenset({"nasa-irsa-spherex"})
-MAX_BODY_BYTES = 4096
+MAX_BODY_BYTES = 16384  # the contact form allows 4000 characters of message
 
 
 class OutboundBlocked(ValueError):

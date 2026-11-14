@@ -2,6 +2,7 @@
 import asyncio
 import json
 import logging
+import hmac
 import re
 import time
 from contextlib import asynccontextmanager
@@ -22,11 +23,12 @@ from .cache import DiskCache, RamLRU
 from .config import get_settings
 from .gaia import cone_sync
 from .jobs import Busy, BlinkSpec, JobRunner, describe_epochs
-from .models import BlinkRequest, validate_collections
+from .models import BlinkRequest, ContactRequest, CountRequest, validate_collections
 from .physics import CoordError, group_epochs, parse_dec, parse_ra
 from .pixels import make_source
 from .security import SecurityMiddleware, limiter
 from .sia import CoverageService, latest_release
+from .store import CLIENT_EVENTS, Store
 from .web import mount_web
 from .targets import TARGETS
 
@@ -54,6 +56,14 @@ async def lifespan(app: FastAPI):
     app.state.http = client
     app.state.coverage = CoverageService(cache, client)
     app.state.jobs = JobRunner(s, cache, make_source(s.pixel_source, s.max_concurrent_fetch, s.s3_prefetch))
+    store = Store(s.cache_dir / "argus.db")
+    app.state.store = store
+
+    def counted(job, n_exposures: int) -> None:
+        store.incr("live_searches")
+        store.incr("exposures_processed", n_exposures)
+
+    app.state.jobs.on_done = counted
 
     async def sweep():
         while True:
@@ -63,6 +73,7 @@ async def lifespan(app: FastAPI):
     sweeper = asyncio.create_task(sweep())
     yield
     sweeper.cancel()
+    store.close()
     await client.aclose()
     app.state.jobs.pool.shutdown(wait=False, cancel_futures=True)
 
@@ -79,6 +90,10 @@ def _collections(request: Request, raw: str | None) -> list[str]:
 
 def create_app() -> FastAPI:
     s = get_settings()
+    # slowapi registers each route's limits globally by function name; a second create_app() (tests) would
+    # register them again and count every request twice. Start from a clean registry each time.
+    limiter._route_limits.clear()
+    limiter._dynamic_route_limits.clear()
     app = FastAPI(title="Argus API", version=__version__, lifespan=lifespan, docs_url="/api/docs",
                   openapi_url="/api/openapi.json", redoc_url=None)
     app.state.limiter = limiter
@@ -255,6 +270,51 @@ def create_app() -> FastAPI:
         if detector:
             pts = [p for p in pts if p["detector"] == detector]
         return cached_json(pts, 86400)
+
+    # ---- Website: public counters, contact form, admin ------------------------------------------------
+    @app.get("/api/stats")
+    @limiter.limit("120/minute")
+    async def stats(request: Request):
+        return JSONResponse(request.app.state.store.stats(), headers={"Cache-Control": "public, max-age=15"})
+
+    @app.post("/api/count", status_code=204)
+    @limiter.limit("60/minute")
+    async def count(request: Request, body: CountRequest):
+        request.app.state.store.incr(CLIENT_EVENTS[body.event])
+        return Response(status_code=204)
+
+    @app.post("/api/contact")
+    @limiter.limit("5/hour")
+    async def contact(request: Request, body: ContactRequest):
+        if body.website:  # honeypot filled: pretend success, store nothing
+            return JSONResponse({"ok": True})
+        request.app.state.store.add_message(body.name, body.email.strip(), body.topic, body.message)
+        return JSONResponse({"ok": True})
+
+    def _admin(request: Request) -> JSONResponse | None:
+        token = request.app.state.settings.admin_token
+        if not token:
+            return problem(404, "Not found")
+        given = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+        if not hmac.compare_digest(given.encode(), token.encode()):
+            return problem(401, "Wrong admin token")
+        return None
+
+    @app.get("/api/admin/messages")
+    @limiter.limit("30/minute")
+    async def admin_messages(request: Request):
+        if (denied := _admin(request)) is not None:
+            return denied
+        return JSONResponse({"messages": request.app.state.store.messages()}, headers={"Cache-Control": "no-store"})
+
+    @app.post("/api/admin/messages/{msg_id}/handled")
+    @limiter.limit("60/minute")
+    async def admin_handled(request: Request, msg_id: int, handled: bool = True):
+        if (denied := _admin(request)) is not None:
+            return denied
+        if not request.app.state.store.mark_handled(msg_id, handled):
+            return problem(404, "Not found")
+        return JSONResponse({"ok": True})
 
     # Last, so every /api route above wins: the built site and its client-side routes.
     if s.web_dir and (s.web_dir / "index.html").is_file():
