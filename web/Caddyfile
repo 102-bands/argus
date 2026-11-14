@@ -1,4 +1,5 @@
-# Static site for Railway (PRD §11.3). Replace <domain> once bought.
+# Static site for Railway (PRD §11.3). /api is proxied to the api service over Railway's private
+# network (API_UPSTREAM, e.g. api.railway.internal:8000), so the site has one origin and no CORS.
 {
 	admin off
 }
@@ -21,9 +22,19 @@
 	@notembed not path /embed /embed/*
 	header @notembed Content-Security-Policy "default-src 'self'; script-src 'self' https://cloud.umami.is 'wasm-unsafe-eval'; connect-src 'self' {$API_ORIGIN} https://gateway.umami.is https://irsa.ipac.caltech.edu https://alasky.cds.unistra.fr; img-src 'self' data: blob: https://irsa.ipac.caltech.edu https://alasky.cds.unistra.fr; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
 
+	handle /api/* {
+		# flush_interval -1: stream job events (SSE) as they happen.
+		reverse_proxy {$API_UPSTREAM:api.railway.internal:8000} {
+			flush_interval -1
+		}
+	}
+
 	@immutable path /assets/* /presets/*/frames/*
 	header @immutable Cache-Control "public, max-age=31536000, immutable"
 
-	try_files {path} /index.html
-	file_server
+	# Static files and the SPA fallback. Inside handle so try_files never rewrites /api/*.
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
 }

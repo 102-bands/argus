@@ -15,4 +15,5 @@ RUN useradd --uid 10001 --no-create-home argus && mkdir -p /data && chown argus 
 USER argus
 ENV PATH=/opt/venv/bin:$PATH CACHE_DIR=/data PORT=8000
 EXPOSE 8000
-CMD ["sh", "-c", "uvicorn argus.main:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*' --no-server-header"]
+# "::" listens on IPv6 too, which Railway's private network (api.railway.internal) uses.
+CMD ["sh", "-c", "uvicorn argus.main:app --host :: --port ${PORT} --proxy-headers --forwarded-allow-ips='*' --no-server-header"]

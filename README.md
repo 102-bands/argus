@@ -4,8 +4,6 @@
 
 Team **102 Bands** (Umair Zia, team lead; Aliki Vidouri) built it for the **2026 NASA International Space Apps Challenge**, challenge *Planet X and SPHEREx*.
 
-- Product spec: [`PRD.md`](PRD.md)
-- Research notes and sources: [`docs/research-notes.md`](docs/research-notes.md)
 - Logo kit: [`brand/`](brand/)
 
 ## Layout
@@ -14,8 +12,6 @@ app/
   api/     FastAPI backend (Python 3.12, uv): SIA coverage, S3 partial reads, stacking, SSE jobs
   web/     React + Vite + TypeScript frontend; public/presets/ holds the five precomputed targets
   brand/   Argus logo kit
-  docs/    research notes; docs/memory/ is the shared memory for people and agents
-  PRD.md   product spec (section numbers § are referenced in code)
 ```
 
 ## Quick start
@@ -24,11 +20,13 @@ cd api && uv sync && uv run uvicorn argus.main:app --port 8000     # backend
 cd web && npm install && npm run dev                                # http://localhost:5173
 ```
 Tests: `uv run pytest` (add `-m network` for live archive checks) and `npm test`.
-More in [`docs/memory/runbook.md`](docs/memory/runbook.md).
+Benchmark the archive reader or a full live job: `uv run python scripts/bench_fetch.py --help`.
+
+Section numbers (§) in code comments refer to the team's internal product spec.
 
 ## Use of AI tools (Space Apps rule)
 The rules ask teams to say where and how AI tools were used:
-- **Code and documents:** we used an AI coding assistant (Claude, by Anthropic) to help write the code and documents, including this PRD. The team designs, reviews, tests and decides everything.
+- **Code and documents:** we used an AI coding assistant (Claude, by Anthropic) to help write the code and documents. The team designs, reviews, tests and decides everything.
 - **Media:** any AI-generated image or video in our demo carries a visible "AI-generated" watermark.
 - **Data and results:** all scientific data comes from the archives credited below. Nothing is AI-generated.
 
