@@ -6,9 +6,9 @@ WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
-# Railway passes service variables with these names as build args (set once Umami exists).
-ARG VITE_UMAMI_WEBSITE_ID=
-ARG VITE_SITE_DOMAIN=
+# Umami Cloud website ID (public, it appears in every page). A Railway variable with the same name overrides it.
+ARG VITE_UMAMI_WEBSITE_ID=8113f1e3-a14d-40f3-9089-2afb9055dc47
+ARG VITE_SITE_DOMAIN=argus102.space
 RUN npm run build \
  && find dist -type f \( -name '*.js' -o -name '*.css' -o -name '*.html' -o -name '*.json' -o -name '*.svg' \
       -o -name '*.bin' -o -name '*.wasm' -o -name '*.map' \) -size +1k -exec gzip -k -9 {} +
