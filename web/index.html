@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Argus: watch the infrared sky change</title>
+    <meta name="description" content="Type a spot in the sky and watch NASA SPHEREx images of it change over time. Built for the 2026 NASA International Space Apps Challenge." />
+    <meta name="theme-color" content="#0B0B0F" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- What the site is, for search engines (schema.org JSON-LD). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Argus",
+        "url": "https://argus102.space/",
+        "description": "A free web tool that plays NASA SPHEREx infrared images of any patch of sky like a flipbook, so moving stars, brown dwarfs and variable stars stand out, with every motion checked against ESA's Gaia catalogue.",
+        "image": "https://argus102.space/og-card.png",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any (web browser)",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "inLanguage": "en",
+        "keywords": "SPHEREx, infrared astronomy, proper motion, brown dwarfs, variable stars, Gaia, Planet X, NASA Space Apps",
+        "about": [
+          { "@type": "Thing", "name": "SPHEREx", "sameAs": "https://en.wikipedia.org/wiki/SPHEREx" },
+          { "@type": "Thing", "name": "Proper motion", "sameAs": "https://en.wikipedia.org/wiki/Proper_motion" }
+        ],
+        "creator": {
+          "@type": "Organization",
+          "name": "102 Bands",
+          "member": [
+            { "@type": "Person", "name": "Umair Zia", "roleName": "Team lead" },
+            { "@type": "Person", "name": "Aliki Vidouri" }
+          ]
+        },
+        "sameAs": ["https://github.com/102-bands/argus"],
+        "subjectOf": { "@type": "VideoObject", "name": "Argus in 30 seconds", "embedUrl": "https://www.youtube.com/embed/6nosbx6FoFc",
+                       "thumbnailUrl": "https://img.youtube.com/vi/6nosbx6FoFc/hqdefault.jpg", "uploadDate": "2026-11-15",
+                       "description": "A 30-second demo of Argus on real SPHEREx data." }
+      }
+    </script>
+    <!-- Link previews (WhatsApp, X, Slack, Discord): absolute URLs, a 1200×630 card. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Argus" />
+    <meta property="og:url" content="https://argus102.space/" />
+    <meta property="og:title" content="Argus: watch the infrared sky change" />
+    <meta property="og:description" content="NASA SPHEREx images of any patch of sky, played as a flipbook. Moving stars, brown dwarfs and variable stars stand out." />
+    <meta property="og:image" content="https://argus102.space/og-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Argus: a SPHEREx difference image of Barnard's Star moving north, cyan now and magenta before." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Argus: watch the infrared sky change" />
+    <meta name="twitter:description" content="NASA SPHEREx images of any patch of sky, played as a flipbook." />
+    <meta name="twitter:image" content="https://argus102.space/og-card.png" />
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="%VITE_UMAMI_WEBSITE_ID%"
+            data-domains="%VITE_SITE_DOMAIN%" data-do-not-track="true"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
