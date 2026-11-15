@@ -1,0 +1,19 @@
+# Argus
+
+> Argus is a free web tool that plays NASA SPHEREx all-sky infrared images of any patch of sky like a flipbook, so anything that moved or changed brightness stands out: nearby stars, brown dwarfs and variable stars. An automatic finder measures every source on every visit, flags what moves, varies or is unusually red, and checks each one against ESA's Gaia DR3 catalogue. Built by Team 102 Bands (Umair Zia, team lead; Aliki Vidouri) for the 2026 NASA International Space Apps Challenge, challenge "Planet X and SPHEREx". Not affiliated with or endorsed by NASA.
+
+## Pages
+- [Home](https://argus102.space/): what Argus does, with an animated explainer for each feature
+- [The tool](https://argus102.space/app): search any position or name; blink, diff and stack modes; six detector bands; Gaia, flags, finds and Planet X overlays; light curves and spectra; PDF, GIF and link sharing
+- [Method paper](https://argus102.space/about): data, calibration, every equation, validation against Gaia, limits
+- [Team](https://argus102.space/team)
+
+## Example fields
+- [Barnard's Star](https://argus102.space/t/barnard): the fastest-moving star in the sky
+- [WISE 0855-0714](https://argus102.space/t/wise-0855): the coldest known brown dwarf, visible only at long wavelengths
+- [RW Aurigae](https://argus102.space/t/rw-aur): a variable young star
+
+## More
+- [Source code and documentation](https://github.com/102-bands/argus)
+- [30-second demo video](https://youtu.be/6nosbx6FoFc)
+- Data: NASA/IPAC IRSA SPHEREx DR1 (doi:10.26131/IRSA678) and QR3 (doi:10.26131/IRSA662); ESA Gaia DR3
