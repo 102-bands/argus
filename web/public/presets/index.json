@@ -1,0 +1,57 @@
+[
+ {
+  "id": "barnard",
+  "name": "Barnard's Star",
+  "ra": 269.446269,
+  "dec": 4.768204,
+  "size": 3,
+  "band": "all",
+  "notes": "Fastest-moving star in the sky: about 1.8 px north between Aug 2025 and Sep 2026, matching Gaia. Bright, so saturated.",
+  "pmra": -801.55,
+  "pmdec": 10362.39
+ },
+ {
+  "id": "eps-indi-b",
+  "name": "\u03b5 Indi B",
+  "ra": 331.096652,
+  "dec": -56.800664,
+  "size": 3,
+  "band": "all",
+  "notes": "Pair of brown dwarfs about 1 px of motion. \u03b5 Indi A sits 6.7\u2032 away; widen to 15\u2032 to see it.",
+  "pmra": 3981.98,
+  "pmdec": -2466.83
+ },
+ {
+  "id": "wise-0855",
+  "name": "WISE 0855\u22120714",
+  "ra": 133.759222,
+  "dec": -7.242218,
+  "size": 3,
+  "band": "D6",
+  "notes": "Coldest known brown dwarf. Invisible below 3.5 \u00b5m; look in the D5/D6 stacks. Moves about 2 px west.",
+  "pmra": -8188.0,
+  "pmdec": 680.0
+ },
+ {
+  "id": "rw-aur",
+  "name": "RW Aur",
+  "ra": 76.95609,
+  "dec": 30.401129,
+  "size": 3,
+  "band": "all",
+  "notes": "Young variable star. No motion; watch its brightness change.",
+  "pmra": 2.64,
+  "pmdec": -27.4
+ },
+ {
+  "id": "r-dra",
+  "name": "R Dra",
+  "ra": 248.167233,
+  "dec": 66.755024,
+  "size": 3,
+  "band": "all",
+  "notes": "Mira variable with a 246-day period. No motion; brightness follows the pulsation phase.",
+  "pmra": -20.64,
+  "pmdec": 6.15
+ }
+]
