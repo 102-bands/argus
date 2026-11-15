@@ -1,4 +1,5 @@
 // Right-rail panel: every source in the field, measured on every visit and labelled automatically.
+import { useEffect, useState } from "react";
 import { formatDec, formatRa } from "../lib/physics";
 import type { Candidate, CandidateResult } from "../lib/candidates";
 
@@ -29,7 +30,7 @@ function Sparkline({ trend }: { trend: Candidate["trend"] }) {
   );
 }
 
-function Details({ c, onCentre }: { c: Candidate; onCentre: (c: Candidate) => void }) {
+function Details({ c, onCentre, onBack }: { c: Candidate; onCentre: (c: Candidate) => void; onBack: () => void }) {
   const m = c.motion;
   return (
     <div className="cand-detail">
@@ -37,8 +38,9 @@ function Details({ c, onCentre }: { c: Candidate; onCentre: (c: Candidate) => vo
         <dt>Position</dt><dd className="mono">{formatRa(c.ra)} {formatDec(c.dec)}</dd>
         {m && <>
           <dt>Motion</dt>
-          <dd className="mono">{(m.total / 1000).toFixed(2)} ± {(m.err / 1000).toFixed(2)}″/yr · PA {Math.round(m.pa)}° · {m.sigma.toFixed(1)}σ</dd>
-          <dt>Shift</dt><dd className="mono">{m.shiftArcsec.toFixed(1)}″ over {c.visits.length} visits</dd>
+          <dd className="mono" title={`${m.shiftArcsec.toFixed(1)}″ over ${c.visits.length} visits`}>
+            {(m.total / 1000).toFixed(2)} ± {(m.err / 1000).toFixed(2)}″/yr · PA {Math.round(m.pa)}° · score {m.sigma.toFixed(1)}
+          </dd>
           {m.parallax && <><dt>Parallax</dt><dd className="mono">≈ {m.parallax.value.toFixed(0)} ± {m.parallax.err.toFixed(0)} mas (estimate)</dd></>}
         </>}
         <dt>Seen in</dt><dd>{c.bandsSeen.length ? c.bandsSeen.join(" ") : "not measured"}{c.colour !== null ? ` · D1 − D6 = ${c.colour.toFixed(1)} mag` : ""}</dd>
@@ -48,36 +50,64 @@ function Details({ c, onCentre }: { c: Candidate; onCentre: (c: Candidate) => vo
       </dl>
       <Sparkline trend={c.trend} />
       <p className="note cand-why">{c.headline}</p>
-      <button className="btn" onClick={() => onCentre(c)} title="Open a new field centred here: Plots then show this source's light curve and spectrum">Centre here</button>
+      <div className="cand-actions">
+        <button className="btn" onClick={onBack}>← All finds</button>
+        <button className="btn" onClick={() => onCentre(c)} title="Open a new field centred here: Plots then show this source's light curve and spectrum">Centre here</button>
+      </div>
     </div>
   );
 }
 
+const SHORT = 3;
+
 export function Candidates({ result, selected, onSelect, onCentre }: Props) {
+  const [all, setAll] = useState(false);
+  useEffect(() => setAll(false), [result]);
+  const pick = result?.candidates.find((c) => c.id === selected) ?? null;
+  // Labelled finds first; steady sources only in the full list.
+  const labelled = result?.candidates.filter((c) => c.kind !== "steady") ?? [];
+  const rows = all ? result?.candidates ?? [] : labelled.slice(0, SHORT);
+  const more = (result?.candidates.length ?? 0) - rows.length;
   return (
     <section className="panel cand-panel" aria-labelledby="cand-h" data-tour="candidates">
       <h2 id="cand-h" className="label">Candidates</h2>
-      {!result ? <p className="note">Measuring every source once all visits are in…</p> : (
+      {!result ? <p className="note">Measuring every source once all visits are in…</p> : pick ? (
+        <>
+          <p className={`cand-row static k-${pick.kind}${pick.labels.includes("Not in Gaia") ? " unknown" : ""}`}>
+            <span className="cand-mark" aria-hidden="true" />
+            <span className="cand-kind">{KIND_LABEL[pick.kind]}</span>
+            <span className="cand-tags">{pick.labels.filter((l) => l !== KIND_LABEL[pick.kind] && l !== "Moving").join(" · ")}</span>
+          </p>
+          <Details c={pick} onCentre={onCentre} onBack={() => onSelect(null)} />
+        </>
+      ) : (
         <>
           <p className="cand-sum">
             {result.candidates.length} sources · {result.counts.moving} moving · {result.counts.variable} variable
             {result.counts.red ? ` · ${result.counts.red} very red` : ""} · {result.counts.unknown} not in Gaia
           </p>
           {result.candidates.length === 0 ? <p className="note">No sources above 5σ in this field.</p> : (
-            <ul className="cand-list">
-              {result.candidates.map((c) => (
-                <li key={c.id} className={c.id === selected ? "open" : ""}>
-                  <button className={`cand-row k-${c.kind}${c.labels.includes("Not in Gaia") ? " unknown" : ""}`}
-                          aria-expanded={c.id === selected} onClick={() => onSelect(c.id === selected ? null : c.id)}>
-                    <span className="cand-mark" aria-hidden="true" />
-                    <span className="cand-kind">{KIND_LABEL[c.kind]}</span>
-                    <span className="cand-tags">{c.labels.filter((l) => l !== KIND_LABEL[c.kind] && l !== "Moving").join(" · ")}</span>
-                    <span className="cand-sig mono">{c.motion && c.kind === "moving" ? `${c.motion.sigma.toFixed(0)}σ` : `${c.snr.toFixed(0)}σ`}</span>
-                  </button>
-                  {c.id === selected && <Details c={c} onCentre={onCentre} />}
-                </li>
-              ))}
-            </ul>
+            <>
+              {rows.length === 0 && <p className="note">Nothing moving, variable or unusually red here.</p>}
+              <ul className={all ? "cand-list all" : "cand-list"}>
+                {rows.map((c) => (
+                  <li key={c.id}>
+                    <button className={`cand-row k-${c.kind}${c.labels.includes("Not in Gaia") ? " unknown" : ""}`}
+                            onClick={() => onSelect(c.id)}>
+                      <span className="cand-mark" aria-hidden="true" />
+                      <span className="cand-kind">{KIND_LABEL[c.kind]}</span>
+                      <span className="cand-tags">{c.labels.filter((l) => l !== KIND_LABEL[c.kind] && l !== "Moving").join(" · ")}</span>
+                      <span className="cand-sig mono">{c.motion && c.kind === "moving" ? c.motion.sigma.toFixed(0) : `${c.snr.toFixed(0)}σ`}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {(more > 0 || all) && (
+                <button className="cand-more" onClick={() => setAll((v) => !v)}>
+                  {all ? "Show fewer" : `Show all ${result.candidates.length}`}
+                </button>
+              )}
+            </>
           )}
         </>
       )}

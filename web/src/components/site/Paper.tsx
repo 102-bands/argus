@@ -209,14 +209,17 @@ export function Paper({ navigate }: Props) {
               <var>w</var><sub><var>i</var></sub> = 1/<var>σ</var><sub><var>i</var></sub><sup>2</sup>,</Eq>
             <Eq n={15}><var>σ</var><sub><var>μ</var></sub> = [Σ<sub><var>i</var></sub> <var>w</var><sub><var>i</var></sub> (<var>t</var><sub><var>i</var></sub> − <var>t</var><sub>m</sub>)<sup>2</sup>]<sup>−1/2</sup>, &nbsp;
               <var>t</var><sub>m</sub> = Σ<sub><var>i</var></sub> <var>w</var><sub><var>i</var></sub> <var>t</var><sub><var>i</var></sub> / Σ<sub><var>i</var></sub> <var>w</var><sub><var>i</var></sub>.</Eq>
-            <p>The significance of motion compares the moving model with a fixed one,</p>
+            <p>The evidence for motion is a score that compares the moving model with a fixed one,</p>
             <Eq n={16}><var>S</var> = (<var>χ</var><sup>2</sup><sub>fixed</sub> − <var>χ</var><sup>2</sup><sub>moving</sub>)<sup>1/2</sup>,</Eq>
             <p>
-              and the position angle is PA = atan2(<var>μ</var><sub><var>α</var>*</sub>, <var>μ</var><sub><var>δ</var></sub>), east of north. Most
+              and the position angle is PA = atan2(<var>μ</var><sub><var>α</var>*</sub>, <var>μ</var><sub><var>δ</var></sub>), east of north.
+              Δ<var>χ</var><sup>2</sup> has two degrees of freedom (one per axis), so <var>S</var> is a score, not a Gaussian
+              significance: <var>S</var> = 5 corresponds to <var>p</var> ≈ 4 × 10<sup>−6</sup> under the fixed model. Most
               sources do not move, so their fixed-model <var>χ</var><sup>2</sup> per degree of freedom should be about one;
               its median over the field sets <var>k</var><sup>2</sup> in eq. (13), so a field with larger systematics does
               not produce false movers. A source is <b>moving</b> if <var>S</var> ≥ 5, its displacement over the span is at
-              least 0.5 px (3.1″) and the straight line fits (<var>χ</var><sup>2</sup><sub>ν</sub> ≤ 4). A saturated core or a
+              least 0.5 px (3.1″) and the straight line fits (<var>χ</var><sup>2</sup><sub>ν</sub> ≤ 4; with three visits this test
+              has only two degrees of freedom and catches only gross jumps). A saturated core or a
               neighbour within 3 px can drag a centroid, so such sources count as moving only when Gaia confirms the
               motion, and a Gaia star whose catalogued motion differs from ours by more than 3<var>σ</var> is reported as a
               measurement artefact, not a mover.
@@ -274,7 +277,7 @@ export function Paper({ navigate }: Props) {
               within half a pixel (3.1″). The same check runs live in the tool for every target (Figure 3).
             </p>
             <table className="p-table">
-              <caption>Table 1. Measured position minus Gaia prediction, worst counted visit.</caption>
+              <caption>Table 1. Measured position minus Gaia prediction, worst counted visit. Visits: those with five or more exposures in that band.</caption>
               <thead><tr><th>Target</th><th>Field, band</th><th>Visits</th><th>Predicted motion</th><th>Worst offset</th></tr></thead>
               <tbody>
                 <tr><td>Barnard's Star</td><td>8′, all</td><td>5</td><td>11.2″</td><td>2.5″ (0.41 px)</td></tr>
@@ -290,25 +293,28 @@ export function Paper({ navigate }: Props) {
               and is measured in detector D6 only.
             </p>
             <p>
-              Table 2 shows what the automatic finder (Section 3.6) reports for the same targets, run blind on the
-              precomputed 3′ fields.
+              Table 2 shows what the automatic finder (Section 3.6) reports for the same targets on the precomputed 3′
+              fields. The finder never sees the target list, but its thresholds were chosen while developing on these
+              fields, so the table shows its behaviour rather than an independent test.
             </p>
             <table className="p-table">
               <caption>Table 2. The automatic finder against Gaia DR3 (WISE 0855: Luhman &amp; Esplin 2016).</caption>
-              <thead><tr><th>Target</th><th>Finder</th><th>Measured motion</th><th>Reference</th></tr></thead>
+              <thead><tr><th>Target</th><th>Finder (motion score <var>S</var>)</th><th>Measured motion</th><th>Reference</th></tr></thead>
               <tbody>
-                <tr><td>Barnard's Star</td><td>moving, 14.8<var>σ</var></td><td>11.0 ± 0.7″/yr, PA 356°</td><td>10.4″/yr, PA 356°</td></tr>
-                <tr><td>ε Indi B</td><td>moving, very red, 8.3<var>σ</var></td><td>4.8 ± 0.6″/yr, PA 116°</td><td>4.7″/yr, PA 122°</td></tr>
-                <tr><td>WISE 0855−0714</td><td>moving, very red, not in Gaia, 5.0<var>σ</var></td><td>4.4 ± 0.9″/yr, PA 276°</td><td>8.1″/yr, PA 275°</td></tr>
-                <tr><td>RW Aur</td><td>variable in D1–D3, D5, D6</td><td>none (0.4<var>σ</var>)</td><td>known variable</td></tr>
+                <tr><td>Barnard's Star</td><td>moving, <var>S</var> = 14.8</td><td>11.0 ± 0.7″/yr, PA 356°</td><td>10.4″/yr, PA 356°</td></tr>
+                <tr><td>ε Indi B</td><td>moving, very red, <var>S</var> = 8.3</td><td>4.8 ± 0.6″/yr, PA 116°</td><td>4.7″/yr, PA 122°</td></tr>
+                <tr><td>WISE 0855−0714</td><td>moving, very red, not in Gaia, <var>S</var> = 5.0</td><td>4.4 ± 0.9″/yr, PA 276°</td><td>8.1″/yr, PA 275°</td></tr>
+                <tr><td>RW Aur</td><td>variable in D1–D3, D5, D6</td><td>none (<var>S</var> = 0.4)</td><td>known variable</td></tr>
                 <tr><td>R Dra</td><td>not measurable: saturated</td><td>–</td><td>known Mira variable</td></tr>
               </tbody>
             </table>
             <p>
-              Barnard's Star and ε Indi B agree with Gaia within 1<var>σ</var>. WISE 0855−0714 is found as a red mover that
-              Gaia cannot see, in the right direction, but its speed is underestimated: a background star about 6″ away pulls
-              the centroid, and four visits span little more than a year. R Dra saturates every detector, so no honest
-              flux can be measured. On the five 8′ fields (up to 40 sources each) the finder reports no false movers; at
+              Barnard's Star and ε Indi B agree with Gaia within their 1<var>σ</var> errors. WISE 0855−0714 is found as a
+              red mover that Gaia cannot see, in the right direction, but its speed is underestimated: a background star
+              about 6″ away pulls the centroid. Its quoted error of 0.9″/yr is therefore too small; the true motion lies
+              about 4<var>σ</var> away, because eq. (13) does not model blending. The finder measures it on four visits of
+              the summed D5 + D6 image, while Table 1 counts only the two D6 visits with five or more exposures. R Dra
+              saturates every detector, so no honest flux can be measured. On the five 8′ fields (up to 40 sources each) the finder reports no false movers; at
               that size WISE 0855's D5–D6 visits have only 3–8 exposures and it is not recovered.
             </p>
             <Fig src="/site/fig-gaia.png" n={3} alt="The Checked against Gaia panel reading Matches Gaia, worst 2.5 arcseconds.">
@@ -334,12 +340,15 @@ export function Paper({ navigate }: Props) {
               any distance from 200 to 3000 AU.
             </p>
             <p>
-              We state the limit plainly: models put such a planet near 22.8 AB magnitudes, about three magnitudes
-              fainter than one SPHEREx visit reaches (~19.5). The overlay teaches the method; it is not a detection.
+              We state the limit plainly. Such a planet is predicted to be fainter than about V ≈ 21 (Batygin et al.
+              2019), while SPHEREx's point-source depth is about 19 AB per spectral channel for the full survey
+              (Doré et al. 2014), and a single visit is shallower still. The overlay teaches the method; it is not a
+              detection.
             </p>
             <Fig src="/site/fig-planetx.png" n={4} alt="The Planet X overlay: a magenta track leaving the field, labelled 13.2 arcminutes.">
               How far a planet at 500 AU, sitting at the field centre on the first visit, would appear to jump by a
-              later visit.
+              later visit: 13.2′ for these two dates, against the 13.8′ maximum when Earth has moved a full 2 AU across
+              the line of sight.
             </Fig>
           </section>
 
@@ -407,12 +416,13 @@ export function Paper({ navigate }: Props) {
             <ol>
               <li>SPHEREx Science Team (2026). SPHEREx Data Release 1. NASA/IPAC IRSA. <a href="https://doi.org/10.26131/IRSA678">doi:10.26131/IRSA678</a></li>
               <li>SPHEREx Science Team (2026). SPHEREx Quick Release 3. NASA/IPAC IRSA. <a href="https://doi.org/10.26131/IRSA662">doi:10.26131/IRSA662</a></li>
-              <li>Bock, J. et al. (2026). SPHEREx mission overview. ApJ 999, 139.</li>
-              <li>Akeson, R. et al. (2026). SPHEREx data processing. ApJS 285, 67.</li>
+              <li>Doré, O. et al. (2014). Cosmology with the SPHEREx all-sky spectral survey. arXiv:1412.4872.</li>
+              <li>Crill, B. P. et al. (2020). SPHEREx: NASA's near-infrared spectrophotometric all-sky survey. Proc. SPIE 11443, 114430I.</li>
               <li>Gaia Collaboration, Vallenari, A. et al. (2023). Gaia Data Release 3. A&amp;A 674, A1.</li>
               <li>Luhman, K. L. &amp; Esplin, T. L. (2016). The distance and motion of WISE 0855−0714. AJ 152, 78.</li>
               <li>Kuchner, M. J. et al. (2017). Backyard Worlds: Planet 9. ApJL 841, L19.</li>
               <li>Batygin, K. &amp; Brown, M. E. (2016). Evidence for a distant giant planet in the Solar System. AJ 151, 22.</li>
+              <li>Batygin, K., Adams, F. C., Brown, M. E. &amp; Becker, J. C. (2019). The planet nine hypothesis. Phys. Rep. 805, 1.</li>
               <li>Boch, T. &amp; Fernique, P. (2014). Aladin Lite. ASP Conf. Ser. 485, 277.</li>
             </ol>
           </section>

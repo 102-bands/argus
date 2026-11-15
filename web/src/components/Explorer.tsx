@@ -473,8 +473,8 @@ export function Explorer({ presetId, targets, embed, navigate, shareOpen, onShar
                         last={cur && cur !== ready[0] ? { mjd: cur.t_mid, label: cur.epoch_label }
                           : ready.length > 1 ? { mjd: ready[ready.length - 1].t_mid, label: ready[ready.length - 1].epoch_label } : null} />
         )}
-        {field && view.px === 0 && (
-          <section className="panel" aria-labelledby="ctx-h" data-tour="sky">
+        {field && view.px === 0 && selectedCand === null && (
+          <section className="panel sky-panel" aria-labelledby="ctx-h" data-tour="sky">
             <h2 id="ctx-h" className="label">Sky context</h2>
             <Suspense fallback={<p className="note">Loading the sky map…</p>}>
               <SkyContext ra={field.ra} dec={field.dec} size={field.size} />

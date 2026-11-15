@@ -46,7 +46,7 @@ export interface Motion {
   total: number;
   /** Position angle of the motion, degrees east of north. */
   pa: number;
-  /** √Δχ² of the moving model over the fixed one. */
+  /** Motion score S = √Δχ² of the moving model over the fixed one (2 degrees of freedom, so not a Gaussian σ). */
   sigma: number;
   /** Measured displacement first → last visit, arcsec. */
   shiftArcsec: number;
@@ -516,7 +516,7 @@ export function findCandidates(frames: FrameMeta[], decoded: Map<string, Decoded
 
     const parts: string[] = [];
     if (moving && motion) {
-      parts.push(`Moving ${motion.sigma.toFixed(1)}σ · ${fmtPm(motion.total)} toward PA ${Math.round(motion.pa)}°`);
+      parts.push(`Moving ${fmtPm(motion.total)} toward PA ${Math.round(motion.pa)}° (score ${motion.sigma.toFixed(1)})`);
       if (match) parts.push(gaiaAgrees ? "matches Gaia" : "Gaia has no motion for it");
       else if (gaia) parts.push(gaiaComplete ? "not in Gaia" : "Gaia list incomplete");
     } else if (variable) {
@@ -525,13 +525,13 @@ export function findCandidates(frames: FrameMeta[], decoded: Map<string, Decoded
       parts.push(p.red ? "Found only at long wavelengths (D5–D6)"
         : colour !== null ? `Very red: D1 − D6 = ${colour.toFixed(1)} mag` : "Seen only at long wavelengths");
     } else if (significant && gaiaDisagrees) {
-      parts.push(`Shift ${motion!.sigma.toFixed(1)}σ disagrees with Gaia's motion: likely blending or an artefact`);
+      parts.push(`Shift (score ${motion!.sigma.toFixed(1)}) disagrees with Gaia's motion: likely blending or an artefact`);
     } else if (significant && !consistent) {
       parts.push("Position jumps between visits (not a steady motion)");
     } else if (significant) {
-      parts.push(`Shift ${motion!.sigma.toFixed(1)}σ, not trusted (${tr.saturated ? "saturated core" : "close neighbour"})`);
+      parts.push(`Shift (score ${motion!.sigma.toFixed(1)}) not trusted: ${tr.saturated ? "saturated core" : "close neighbour"}`);
     } else {
-      parts.push(motion ? `Steady (motion ${motion.sigma.toFixed(1)}σ)` : "Steady");
+      parts.push(motion ? `Steady (motion score ${motion.sigma.toFixed(1)})` : "Steady");
     }
     if (!moving && match) parts.push(`Gaia G ${match.g?.toFixed(1) ?? "?"}`);
     if (!moving && !match && gaia) parts.push(gaiaComplete ? "not in Gaia" : "Gaia list incomplete");
