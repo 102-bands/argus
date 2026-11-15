@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /embed
+
+Sitemap: https://argus102.space/sitemap.xml
