@@ -1,8 +1,15 @@
-// Website home: what Argus is, live counters, how it works, the five targets, validation, Planet X, team, contact.
+// Website home: what Argus is, live counters, how it works, each feature with its own animation, the five targets, team, contact.
 import type { Target } from "../../lib/api";
 import { presetPath } from "../../lib/api";
 import { BlackHole } from "./BlackHole";
 import { ContactForm } from "./ContactForm";
+import { BandsAnim } from "./anim/BandsAnim";
+import { BlinkAnim } from "./anim/BlinkAnim";
+import { DiffAnim } from "./anim/DiffAnim";
+import { FinderAnim } from "./anim/FinderAnim";
+import { GaiaAnim } from "./anim/GaiaAnim";
+import { PlotsAnim } from "./anim/PlotsAnim";
+import { StackAnim } from "./anim/StackAnim";
 import { PlanetXAnim } from "./PlanetXAnim";
 import { SiteLayout } from "./SiteLayout";
 import { Telemetry } from "./Telemetry";
@@ -18,6 +25,41 @@ const CHECKS: [string, string, string][] = [
   ["WISE 0855−0714", "D6, 4.7 µm", "0.35 px (2.2″)"],
   ["RW Aur", "all bands", "steady, 0.19 px"],
   ["R Dra", "all bands", "steady, 0.38 px"],
+];
+
+interface Feature {
+  id: string;
+  title: string;
+  text: string;
+  link: [string, string];
+  anim: React.ReactNode;
+}
+
+const FEATURES: Feature[] = [
+  { id: "blink", title: "Blink between visits",
+    text: "Argus plays the visits of one patch of sky like a flipbook, every frame on the same grid with north up. "
+        + "Distant stars hold still, so anything close enough to move jumps out.",
+    link: ["/t/barnard", "Blink Barnard's Star"], anim: <BlinkAnim /> },
+  { id: "diff", title: "Subtract to see only what changed",
+    text: "Diff mode takes one visit away from another. Everything steady cancels out and only the change is left, "
+        + "in two colours you can read at a glance.",
+    link: ["/t/barnard?mode=diff", "Try diff mode"], anim: <DiffAnim /> },
+  { id: "stack", title: "Stack to go deeper",
+    text: "Stack mode adds every exposure together. Noise averages away and sources too faint for a single "
+        + "exposure come through.",
+    link: ["/t/barnard?mode=stack", "Try stack mode"], anim: <StackAnim /> },
+  { id: "bands", title: "Six infrared bands",
+    text: "Pick a detector band from D1 (0.75 µm) to D6 (5 µm), or add them all. The coldest objects only show up "
+        + "at the long-wavelength end.",
+    link: ["/t/wise-0855?size=3&band=D6", "See WISE 0855 in D6"], anim: <BandsAnim /> },
+  { id: "finds", title: "Finds, measured for you",
+    text: "Once a field has loaded, Argus measures every source on every visit in your browser and labels what is "
+        + "moving, variable or unusually red.",
+    link: ["/t/wise-0855?size=3", "See what it finds"], anim: <FinderAnim /> },
+  { id: "plots", title: "Light curves and spectra",
+    text: "The Plots view turns the source at the centre into numbers: its brightness on each visit and its "
+        + "spectrum across SPHEREx's 102 colours.",
+    link: ["/t/rw-aur?view=plots", "Plot RW Aurigae"], anim: <PlotsAnim /> },
 ];
 
 export function Home({ targets, navigate }: Props) {
@@ -78,6 +120,51 @@ export function Home({ targets, navigate }: Props) {
           </ol>
         </section>
 
+        <section className="band feat-intro" aria-labelledby="feat-h">
+          <div className="band-head">
+            <h2 id="feat-h">What Argus shows you</h2>
+            <p>Each of these is one button in the tool. Here's what it does.</p>
+          </div>
+        </section>
+        {FEATURES.map((f, i) => (
+          <section key={f.id} className={i % 2 ? "band split feat flip" : "band split feat"} aria-labelledby={`f-${f.id}`}>
+            <div>
+              <h2 id={`f-${f.id}`}>{f.title}</h2>
+              <p>{f.text}</p>
+              <a href={f.link[0]} onClick={go(f.link[0])} className="textlink">{f.link[1]} →</a>
+            </div>
+            {f.anim}
+          </section>
+        ))}
+
+        <section className="band split feat" aria-labelledby="val-h">
+          <div>
+            <h2 id="val-h">Checked against Gaia</h2>
+            <p>For every target, Argus measures where the star actually is on each visit and compares it with the
+              position ESA's Gaia catalogue predicts for that date. Every one agrees to within half a SPHEREx pixel.</p>
+            <table className="val-table">
+              <thead><tr><th>Target</th><th>Band</th><th>Worst offset</th></tr></thead>
+              <tbody>
+                {CHECKS.map(([n, b, o]) => <tr key={n}><td>{n}</td><td>{b}</td><td className="mono">✓ {o}</td></tr>)}
+              </tbody>
+            </table>
+            <a href="/about#validation" onClick={go("/about")} className="textlink">How we measured it →</a>
+          </div>
+          <GaiaAnim />
+        </section>
+
+        <section className="band split feat flip" aria-labelledby="px-h2">
+          <div>
+            <h2 id="px-h2">The Planet X question</h2>
+            <p>Planet X is a hypothesis: an unseen planet far beyond Neptune. Argus can't find it, since it would be
+              about three magnitudes fainter than one SPHEREx visit can see. What it can do is show how the hunt works:
+              a distant planet gives itself away by jumping between visits as Earth moves around the Sun. Turn on the
+              Planet X overlay in the tool to draw that jump on real SPHEREx images.</p>
+            <a href="/t/barnard?mode=diff&px=500" onClick={go("/t/barnard?mode=diff&px=500")} className="textlink">Try it on Barnard's Star →</a>
+          </div>
+          <PlanetXAnim />
+        </section>
+
         <section className="band" aria-labelledby="tg-h">
           <div className="band-head">
             <h2 id="tg-h">Five targets to start with</h2>
@@ -94,33 +181,6 @@ export function Home({ targets, navigate }: Props) {
               </li>
             ))}
           </ul>
-        </section>
-
-        <section className="band split" aria-labelledby="val-h">
-          <div>
-            <h2 id="val-h">Checked against Gaia</h2>
-            <p>For every target, Argus measures where the star actually is on each visit and compares it with the
-              position ESA's Gaia catalogue predicts for that date. Every one agrees to within half a SPHEREx pixel.</p>
-            <a href="/about#validation" onClick={go("/about")} className="textlink">How we measured it →</a>
-          </div>
-          <table className="val-table">
-            <thead><tr><th>Target</th><th>Band</th><th>Worst offset</th></tr></thead>
-            <tbody>
-              {CHECKS.map(([n, b, o]) => <tr key={n}><td>{n}</td><td>{b}</td><td className="mono">✓ {o}</td></tr>)}
-            </tbody>
-          </table>
-        </section>
-
-        <section className="band split" aria-labelledby="px-h2">
-          <div>
-            <h2 id="px-h2">The Planet X question</h2>
-            <p>Planet X is a hypothesis: an unseen planet far beyond Neptune. Argus can't find it, since it would be
-              about three magnitudes fainter than one SPHEREx visit can see. What it can do is show how the hunt works:
-              a distant planet gives itself away by jumping between visits as Earth moves around the Sun. Turn on the
-              Planet X overlay in the tool to draw that jump on real SPHEREx images.</p>
-            <a href="/t/barnard?mode=diff&px=500" onClick={go("/t/barnard?mode=diff&px=500")} className="textlink">Try it on Barnard's Star →</a>
-          </div>
-          <PlanetXAnim />
         </section>
 
         <section className="band split" aria-labelledby="team-h">

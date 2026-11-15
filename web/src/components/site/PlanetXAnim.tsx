@@ -1,5 +1,6 @@
 // How a Planet X search works: Earth's orbit makes a distant planet jump against the far stars between visits.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useLoop } from "./anim/useLoop";
 
 const SUN: [number, number] = [118, 170];
 const ORBIT = 62;
@@ -24,27 +25,8 @@ const NOW = earthAt(Math.PI / 2);
 
 export function PlanetXAnim() {
   const [dAU, setDAU] = useState(500);
-  const [angle, setAngle] = useState(0);
   const ref = useRef<SVGSVGElement>(null);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let raf = 0, visible = true, last = 0;
-    const tick = (now: number) => {
-      raf = 0;
-      if (!visible || document.hidden) return;
-      const dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
-      last = now;
-      setAngle((a) => (a + (2 * Math.PI * dt) / PERIOD_S) % (2 * Math.PI));
-      raf = requestAnimationFrame(tick);
-    };
-    const play = () => { if (!raf && visible && !document.hidden) { last = 0; raf = requestAnimationFrame(tick); } };
-    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; play(); });
-    if (ref.current) io.observe(ref.current);
-    document.addEventListener("visibilitychange", play);
-    play();
-    return () => { cancelAnimationFrame(raf); io.disconnect(); document.removeEventListener("visibilitychange", play); };
-  }, []);
+  const angle = ((2 * Math.PI * useLoop(ref)) / PERIOD_S) % (2 * Math.PI);
 
   const stars = useMemo(() => {
     let s = 11;
