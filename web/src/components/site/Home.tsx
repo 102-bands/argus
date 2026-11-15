@@ -43,6 +43,7 @@ export function Home({ targets, navigate }: Props) {
             <div className="hero-cta">
               <a href="/app" onClick={go("/app")} className="btn btn-primary btn-lg">Open the tool</a>
               <a href="/about" onClick={go("/about")} className="btn btn-lg">Read the paper</a>
+              <a href="https://youtu.be/6nosbx6FoFc" target="_blank" rel="noopener" className="btn btn-lg">Watch the 30-second demo ↗</a>
             </div>
             <p className="hero-meta mono">Free · no sign-up · works on phones · open source</p>
           </div>

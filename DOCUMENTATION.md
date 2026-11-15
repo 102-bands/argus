@@ -4,6 +4,7 @@ Argus is a free web tool that turns NASA SPHEREx all-sky infrared images of any 
 
 - Live site: <https://argus102.space> · the tool: <https://argus102.space/app>
 - Method paper (every equation, validation, limits): <https://argus102.space/about>
+- Demo video (30 seconds): <https://youtu.be/6nosbx6FoFc>
 - Team 102 Bands (Umair Zia, team lead; Aliki Vidouri), 2026 NASA International Space Apps Challenge, challenge *Planet X and SPHEREx*
 
 Argus is not affiliated with or endorsed by NASA.

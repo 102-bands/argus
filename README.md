@@ -2,6 +2,8 @@
 
 **Type in a spot in the sky and watch it change.** Argus plays NASA SPHEREx infrared images of any patch of sky like a flipbook, so anything that moved or changed brightness stands out: nearby stars, brown dwarfs and variable stars. An automatic finder measures every source on every visit, flags what moves, varies or is unusually red, and checks each one against ESA's Gaia catalogue.
 
+Demo video (30 s): [youtu.be/6nosbx6FoFc](https://youtu.be/6nosbx6FoFc)
+
 Full documentation: [`DOCUMENTATION.md`](DOCUMENTATION.md) · the method paper: [argus102.space/about](https://argus102.space/about)
 
 Team **102 Bands** (Umair Zia, team lead; Aliki Vidouri) built it for the **2026 NASA International Space Apps Challenge**, challenge *Planet X and SPHEREx*.
